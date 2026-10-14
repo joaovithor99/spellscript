@@ -1,6 +1,43 @@
-lexer grammar SpellScript;
+grammar SpellScript;
 
-// --- PALAVRAS-CHAVE ---
+// ==========================================
+// --- REGRAS SINTÁTICAS (PARSER) ---
+// ==========================================
+
+// O programa é composto por uma ou mais declarações até o Fim do Arquivo (EOF)
+programa : (declaracao)+ EOF ;
+
+declaracao
+    : decl_nivel
+    | decl_elemento
+    | decl_alcance
+    | decl_area
+    | decl_mana
+    | decl_dano
+    | decl_efeito
+    ;
+
+decl_nivel    : KW_NIVEL DOIS_PONTOS expressao ;
+decl_elemento : KW_ELEMENTO DOIS_PONTOS ELEMENTO_VAL ;
+decl_alcance  : KW_ALCANCE DOIS_PONTOS expressao ;
+decl_area     : KW_AREA DOIS_PONTOS expressao ;
+decl_mana     : KW_MANA DOIS_PONTOS expressao ;
+decl_dano     : KW_DANO DOIS_PONTOS expressao ;
+decl_efeito   : KW_EFEITO DOIS_PONTOS TEXTO (KW_POR expressao KW_TURNO)? ;
+
+// Regra de Expressão Aritmética com Precedência
+expressao
+    : ABRE_PAR expressao FECHA_PAR            # ExpParenteses
+    | expressao (MULT | DIV) expressao        # ExpMultDiv
+    | expressao (MAIS | MENOS) expressao      # ExpSomSub
+    | NUMERO                                 # ExpNumero
+    | IDENT                                  # ExpVariavel
+    ;
+
+// ==========================================
+// --- REGRAS LÉXICAS (LEXER) ---
+// ==========================================
+
 KW_NIVEL     : 'NIVEL_REQUERIDO';
 KW_ELEMENTO  : 'ELEMENTO';
 KW_ALCANCE   : 'ALCANCE';
@@ -11,10 +48,8 @@ KW_DANO      : 'DANO';
 KW_EFEITO    : 'EFEITO';
 KW_POR       : 'POR';
 
-// --- VALORES FIXOS ENUMERADOS ---
 ELEMENTO_VAL : 'FOGO' | 'GELO' | 'RAIO' | 'TERRA' | 'AGUA' | 'AR' | 'LUZ' | 'TREVAS';
 
-// --- OPERADORES E PONTUAÇÃO ---
 DOIS_PONTOS  : ':';
 MAIS         : '+';
 MENOS        : '-';
@@ -23,16 +58,9 @@ DIV          : '/';
 ABRE_PAR     : '(';
 FECHA_PAR    : ')';
 
-// --- TIPOS DE DADOS GENÉRICOS ---
-// Identificadores (nomes de variáveis/atributos)
 IDENT        : [a-zA-Z_] [a-zA-Z_0-9]*;
-
-// Números inteiros e reais
 NUMERO       : [0-9]+ ('.' [0-9]+)?;
-
-// Literais de texto entre aspas duplas
 TEXTO        : '"' ~['"\r\n]* '"';
 
-// --- REGRAS DE DESCARTE (SKIP) ---
 COMENT       : '#' ~[\r\n]* -> skip;
 ESPACO       : [ \t\r\n]+ -> skip;
