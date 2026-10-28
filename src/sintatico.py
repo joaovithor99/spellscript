@@ -1,52 +1,60 @@
 import sys
 import os
 
-# Adiciona a raiz do projeto ao caminho de busca do Python
-sys.path.insert(0, os.path.abspath('.'))
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(BASE_DIR, 'gerado'))
+sys.path.insert(0, os.path.join(BASE_DIR, 'src'))
 
-from antlr4 import *
+from antlr4 import FileStream, CommonTokenStream
 from antlr4.error.ErrorListener import ErrorListener
+from SpellScriptLexer import SpellScriptLexer
+from SpellScriptParser import SpellScriptParser
+from semantico import SemanticoVisitor
 
-from gerado.SpellScriptLexer import SpellScriptLexer
-from gerado.SpellScriptParser import SpellScriptParser
 
-class SintaticoErrorListener(ErrorListener):
+# Listener para registrar e contar erros léxicos
+class LexerErrorListener(ErrorListener):
     def __init__(self):
-        super(SintaticoErrorListener, self).__init__()
-        self.erros = []
+        super().__init__()
+        self.erros = 0
 
     def syntaxError(self, recognizer, offendingSymbol, line, column, msg, e):
-        self.erros.append(f"Erro Sintático na linha {line}, coluna {column}: {msg}")
+        self.erros += 1
 
-def main():
-    if len(sys.argv) < 2:
-        print("Uso: python src/sintatico.py <caminho_do_arquivo>")
-        sys.exit(1)
 
-    caminho_arquivo = sys.argv[1]
+def analisar_arquivo(caminho_arquivo):
     input_stream = FileStream(caminho_arquivo, encoding='utf-8')
     
+    # Análise Léxica
     lexer = SpellScriptLexer(input_stream)
-    stream = CommonTokenStream(lexer)
-
-    parser = SpellScriptParser(stream)
+    lexer_listener = LexerErrorListener()
+    lexer.addErrorListener(lexer_listener)
     
-    error_listener = SintaticoErrorListener()
-    parser.removeErrorListeners()
-    parser.addErrorListener(error_listener)
-
-    # Executa a regra inicial (programa)
+    tokens = CommonTokenStream(lexer)
+    
+    # Análise Sintática
+    parser = SpellScriptParser(tokens)
     tree = parser.programa()
 
-    if error_listener.erros:
-        print(f"❌ {len(error_listener.erros)} erro(s) sintático(s) encontrado(s):")
-        for erro in error_listener.erros:
-            print("  -", erro)
-        sys.exit(1)
-    else:
-        print("✅ Sintaxe analisada com sucesso! Sem erros sintáticos.")
-        print("\nÁrvore Sintática (Parse Tree):")
-        print(tree.toStringTree(recog=parser))
+    # Checa erros no Lexer E no Parser
+    if lexer_listener.erros > 0 or parser.getNumberOfSyntaxErrors() > 0:
+        print("\n[X] Falha na Análise Léxica ou Sintática. Corrija os erros acima antes de prosseguir.")
+        return
 
-if __name__ == "__main__":
-    main()
+    # Análise Semântica (E4)
+    visitor = SemanticoVisitor()
+    erros_semanticos = visitor.visit(tree)
+
+    if erros_semanticos:
+        print("\n--- Erros Semânticos Encontrados (E4) ---")
+        for erro in erros_semanticos:
+            print(f" - {erro}")
+    else:
+        print("\n[V] Análise sintática e semântica concluídas com SUCESSO!")
+
+
+if __name__ == '__main__':
+    if len(sys.argv) > 1:
+        analisar_arquivo(sys.argv[1])
+    else:
+        print("Uso: python src/sintatico.py <caminho_do_arquivo.spell>")
