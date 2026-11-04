@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#11111b">
+  <title>SpellScript | Laboratório</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #11111b;
+      --panel: #1b1b2a;
+      --panel-soft: #222235;
+      --border: #34344b;
+      --text: #f0efff;
+      --muted: #a4a2bd;
+      --purple: #a78bfa;
+      --green: #6ee7b7;
+      --red: #fda4af;
+      --yellow: #fcd34d;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      padding: 38px 24px;
+      color: var(--text);
+      background:
+        radial-gradient(ellipse at 12% 0%, #33245c 0, transparent 38%),
+        radial-gradient(ellipse at 100% 80%, #182a3d 0, transparent 32%),
+        var(--bg);
+      font: 15px/1.5 "Segoe UI", sans-serif;
+    }
+
+    button, textarea { font: inherit; }
+    button { color: inherit; }
+
+    .shell { max-width: 1180px; margin: 0 auto; }
+    .topline { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .sigil {
+      display: grid;
+      width: 42px;
+      height: 42px;
+      place-items: center;
+      border: 1px solid #7356bd;
+      border-radius: 13px;
+      color: #d8caff;
+      background: #312452;
+      font-size: 21px;
+    }
+
+    .eyebrow {
+      margin: 0;
+      color: var(--purple);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+
+    h1 { margin: 0; font-size: clamp(28px, 5vw, 40px); letter-spacing: -.04em; }
+    .intro { max-width: 680px; margin: 9px 0 26px; color: var(--muted); }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 15px;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: #171724d9;
+    }
+
+    .toolbar-group { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; }
+    .file-label, .subtle-button, .analyze-button {
+      display: inline-flex;
+      min-height: 39px;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 8px 13px;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      background: var(--panel-soft);
+      cursor: pointer;
+      transition: border-color .15s, transform .15s, background .15s;
+    }
+
+    .file-label:hover, .subtle-button:hover { border-color: #7960b3; background: #2a2840; }
+    .analyze-button {
+      border-color: #9c7af0;
+      color: #1a1428;
+      background: #b49bff;
+      font-weight: 800;
+    }
+    .analyze-button:hover { transform: translateY(-1px); background: #c4b2ff; }
+    button:focus-visible, .file-label:focus-within, textarea:focus-visible {
+      outline: 2px solid var(--purple);
+      outline-offset: 3px;
+    }
+
+    #fileInput { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); }
+    .shortcut { color: var(--muted); font-size: 12px; }
+    .workspace { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(300px, .85fr); gap: 15px; }
+    .panel {
+      min-width: 0;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: 15px;
+      background: #191926ed;
+      box-shadow: 0 18px 50px #00000024;
+    }
+
+    .panel-head {
+      display: flex;
+      min-height: 53px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 11px 16px;
+      border-bottom: 1px solid var(--border);
+      background: #202031;
+    }
+
+    .panel-title { display: flex; align-items: center; gap: 9px; font-size: 13px; font-weight: 750; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--purple); box-shadow: 0 0 12px #a78bfa90; }
+    .filename { overflow: hidden; color: var(--muted); font: 12px/1.4 Consolas, monospace; text-overflow: ellipsis; white-space: nowrap; }
+
+    textarea {
+      display: block;
+      width: 100%;
+      min-height: 445px;
+      resize: vertical;
+      padding: 20px;
+      border: 0;
+      color: #e5e3f6;
+      background: transparent;
+      font: 13px/1.9 Consolas, "Courier New", monospace;
+      tab-size: 2;
+    }
+    textarea::placeholder { color: #74728c; }
+    .editor-foot { display: flex; justify-content: space-between; gap: 12px; padding: 10px 16px; border-top: 1px solid var(--border); color: var(--muted); font-size: 11px; }
+
+    .result-content { min-height: 445px; padding: 18px; }
+    .status-card { display: flex; align-items: flex-start; gap: 12px; padding: 15px; border: 1px solid var(--border); border-radius: 12px; background: #202031; }
+    .status-icon { display: grid; flex: 0 0 30px; width: 30px; height: 30px; place-items: center; border-radius: 50%; font-weight: 900; }
+    .status-card h2 { margin: 1px 0 3px; font-size: 15px; }
+    .status-card p { margin: 0; color: var(--muted); font-size: 12px; }
+    .status-card.idle .status-icon { color: var(--purple); background: #392d58; }
+    .status-card.success { border-color: #23684f; background: #14271f; }
+    .status-card.success .status-icon { color: #09251b; background: var(--green); }
+    .status-card.error { border-color: #783943; background: #2b191f; }
+    .status-card.error .status-icon { color: #351018; background: var(--red); }
+    .status-card.warning .status-icon { color: #382707; background: var(--yellow); }
+    .status-card.warning { border-color: #695226; background: #2b2517; }
+
+    .message-list { display: grid; gap: 9px; margin: 15px 0 0; padding: 0; list-style: none; }
+    .message {
+      padding: 11px 12px;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      color: #d5d3e6;
+      background: #202031;
+      font-size: 12px;
+    }
+    .message.error { border-color: #63353f; }
+    .message.warning { border-color: #625027; }
+    .message strong { display: block; margin-bottom: 2px; color: var(--red); font-size: 11px; }
+    .message.warning strong { color: var(--yellow); }
+    .message.info strong { color: var(--green); }
+    .empty-note { margin: 18px 2px; color: var(--muted); font-size: 12px; }
+
+    .files { display: none; gap: 7px; margin-top: 11px; }
+    .files.visible { display: grid; }
+    .file-item {
+      overflow: hidden;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--muted);
+      background: #171724;
+      cursor: pointer;
+      font: 11px Consolas, monospace;
+      text-align: left;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .file-item.active { border-color: #8165c3; color: var(--text); background: #29233a; }
+    .rules { margin-top: 15px; padding: 13px 15px; border: 1px solid var(--border); border-radius: 12px; }
+    .rules summary { color: #d4d0e8; cursor: pointer; font-size: 12px; font-weight: 700; }
+    .rules p { margin: 9px 0 0; color: var(--muted); font-size: 11px; }
+    .footer { margin-top: 17px; color: #88869f; font-size: 11px; text-align: center; }
+
+    @media (max-width: 760px) {
+      body { padding: 25px 14px; }
+      .toolbar { align-items: flex-start; flex-direction: column; }
+      .workspace { grid-template-columns: 1fr; }
+      textarea, .result-content { min-height: 300px; }
+      .shortcut { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div class="topline">
+        <div class="sigil" aria-hidden="true">✦</div>
+        <p class="eyebrow">SpellScript · bancada de testes</p>
+      </div>
+      <h1>Laboratório de feitiços</h1>
+      <p class="intro">Escreva ou carregue um arquivo <code>.spell</code> e confira na hora se a sintaxe e as regras do feitiço estão corretas.</p>
+    </header>
+
+    <section class="toolbar" aria-label="Ações do editor">
+      <div class="toolbar-group">
+        <label class="file-label" for="fileInput">↥ Abrir arquivos .spell</label>
+        <input id="fileInput" type="file" accept=".spell,text/plain" multiple>
+        <button id="clearButton" class="subtle-button" type="button">Limpar editor</button>
+      </div>
+      <div class="toolbar-group">
+        <span class="shortcut">Atalho: Ctrl + Enter</span>
+        <button id="analyzeButton" class="analyze-button" type="button">▶ Analisar feitiço</button>
+      </div>
+    </section>
+
+    <section class="workspace" aria-label="Editor e resultado da análise">
+      <section class="panel">
+        <div class="panel-head">
+          <div class="panel-title"><span class="dot"></span> Código do feitiço</div>
+          <span id="currentFile" class="filename">apocalipse_sombrio.spell</span>
+        </div>
+        <textarea id="editor" spellcheck="false" aria-label="Código SpellScript" placeholder="NIVEL_REQUERIDO: 5&#10;ELEMENTO: FOGO&#10;MANA: 20&#10;..."></textarea>
+        <div class="editor-foot">
+          <span>SpellScript · UTF-8</span>
+          <span id="lineCount">7 linhas</span>
+        </div>
+      </section>
+
+      <section class="panel" aria-live="polite">
+        <div class="panel-head">
+          <div class="panel-title"><span class="dot"></span> Resultado da validação</div>
+          <span class="filename">análise local</span>
+        </div>
+        <div class="result-content">
+          <div id="statusCard" class="status-card idle">
+            <div id="statusIcon" class="status-icon" aria-hidden="true">✦</div>
+            <div>
+              <h2 id="statusTitle">Pronto para analisar</h2>
+              <p id="statusDescription">Edite o código e clique em “Analisar feitiço”.</p>
+            </div>
+          </div>
+          <ul id="messages" class="message-list"></ul>
+          <p id="emptyNote" class="empty-note">Os erros e avisos encontrados aparecerão aqui, com a linha correspondente.</p>
+          <div id="fileList" class="files" aria-label="Arquivos carregados"></div>
+          <details class="rules">
+            <summary>O que esta validação verifica?</summary>
+            <p>Sintaxe definida pela gramática, atributos obrigatórios e repetidos, variáveis permitidas, valores negativos estáticos, divisão por zero e avisos de balanceamento. A análise roda inteiramente nesta página; não substitui a execução do analisador Python/ANTLR.</p>
+          </details>
+        </div>
+      </section>
+    </section>
+
+    <p class="footer">Um espaço rápido para experimentar, ajustar e validar suas magias.</p>
+  </main>
+
+  <script>
+    (() => {
+      const sample = `NIVEL_REQUERIDO: 15
+ELEMENTO: TREVAS
+MANA: 50 + (NIVEL_CONJURADOR * 3)
+DANO: 40 + (INTELIGENCIA * 4) + (SABEDORIA * 2)
+ALCANCE: 20 + AGILIDADE
+AREA: 10
+EFEITO: "Corrupcao Animica e Paralisia" POR 3 TURNO`;
+
+      const attributes = new Set([
+        "NIVEL_REQUERIDO", "ELEMENTO", "MANA", "DANO",
+        "ALCANCE", "AREA", "EFEITO"
+      ]);
+      const elements = new Set(["FOGO", "GELO", "RAIO", "TERRA", "AGUA", "AR", "LUZ", "TREVAS"]);
+      const allowedVariables = new Set(["NIVEL_CONJURADOR", "INTELIGENCIA", "FORCA", "AGILIDADE", "SABEDORIA", "TURNO"]);
+      const nonNegativeAttributes = new Set(["NIVEL_REQUERIDO", "MANA", "ALCANCE", "AREA", "DANO"]);
+      const contradictions = {
+        FOGO: ["congel", "gelo", "frio", "geada"],
+        GELO: ["queim", "fogo", "chama", "incend"],
+        AGUA: ["queim", "fogo", "chama", "incend"],
+        RAIO: ["congel", "queim"],
+        TROVAO: ["congel", "queim"],
+        LUZ: ["trevas", "necro", "maldic"],
+        TREVAS: ["sagrad", "cura", "bencao"]
+      };
+
+      const editor = document.querySelector("#editor");
+      const fileInput = document.querySelector("#fileInput");
+      const fileList = document.querySelector("#fileList");
+      const messages = document.querySelector("#messages");
+      const files = [];
+      let activeFile = -1;
+
+      function tokenize(source) {
+        const tokens = [];
+        let index = 0;
+        let line = 1;
+        let column = 0;
+        const fail = (message) => { throw new Error(`Linha ${line}, coluna ${column + 1}: ${message}`); };
+
+        while (index < source.length) {
+          const char = source[index];
+          if (char === "\n") { index++; line++; column = 0; continue; }
+          if (/\s/.test(char)) { index++; column++; continue; }
+          if (char === "#") {
+            while (index < source.length && source[index] !== "\n") { index++; column++; }
+            continue;
+          }
+
+          const startLine = line;
+          const startColumn = column + 1;
+          const rest = source.slice(index);
+          let match;
+          if (char === '"') {
+            match = /^"[^'"\r\n]*"/.exec(rest);
+            if (!match) fail("texto inválido ou aspas não fechadas.");
+            tokens.push({ type: "TEXT", value: match[0].slice(1, -1), line: startLine, column: startColumn });
+          } else if ((match = /^[a-zA-Z_][a-zA-Z_0-9]*/.exec(rest))) {
+            const value = match[0];
+            const type = attributes.has(value) ? "ATTRIBUTE"
+              : elements.has(value) ? "ELEMENT"
+              : value === "POR" ? "POR"
+              : value === "TURNO" ? "TURNO"
+              : "IDENT";
+            tokens.push({ type, value, line: startLine, column: startColumn });
+          } else if ((match = /^[0-9]+(?:\.[0-9]+)?/.exec(rest))) {
+            tokens.push({ type: "NUMBER", value: match[0], line: startLine, column: startColumn });
+          } else if (":+-*/()".includes(char)) {
+            tokens.push({ type: char, value: char, line: startLine, column: startColumn });
+            match = [char];
+          } else {
+            fail(`caractere não reconhecido: “${char}”.`);
+          }
+
+          index += match[0].length;
+          column += match[0].length;
+        }
+        return tokens;
+      }
+
+      function parse(source) {
+        const tokens = tokenize(source);
+        let position = 0;
+        const declarations = [];
+        const errors = [];
+        const warnings = [];
+        const checkDivisions = (node) => {
+          if (!node || node.kind !== "binary") return;
+          if (node.operator === "/" && evaluate(node.right) === 0) {
+            errors.push(`Linha ${node.line}: divisão por zero detectada.`);
+          }
+          checkDivisions(node.left);
+          checkDivisions(node.right);
+        };
+        const peek = () => tokens[position];
+        const take = () => tokens[position++];
+        const expect = (type, description) => {
+          const token = peek();
+          if (!token || token.type !== type) {
+            const location = token ? `Linha ${token.line}, coluna ${token.column}` : "Fim do arquivo";
+            throw new Error(`${location}: esperado ${description}.`);
+          }
+          return take();
+        };
+        const expression = () => additive();
+        const primary = () => {
+          const token = peek();
+          if (!token) throw new Error("Fim do arquivo: expressão incompleta.");
+          if (token.type === "(") {
+            take();
+            const node = expression();
+            expect(")", "“)”");
+            return node;
+          }
+          if (token.type === "NUMBER") {
+            take();
+            return { kind: "number", value: Number(token.value), line: token.line };
+          }
+          if (token.type === "IDENT" || token.type === "TURNO") {
+            take();
+            if (!allowedVariables.has(token.value)) {
+              errors.push(`Linha ${token.line}: variável “${token.value}” não é reconhecida.`);
+            }
+            return { kind: "variable", value: token.value, line: token.line };
+          }
+          throw new Error(`Linha ${token.line}, coluna ${token.column}: esperado número, variável ou “(”.`);
+        };
+        const multiplicative = () => {
+          let node = primary();
+          while (peek() && (peek().type === "*" || peek().type === "/")) {
+            const operator = take();
+            node = { kind: "binary", operator: operator.type, left: node, right: primary(), line: operator.line };
+          }
+          return node;
+        };
+        const additive = () => {
+          let node = multiplicative();
+          while (peek() && (peek().type === "+" || peek().type === "-")) {
+            const operator = take();
+            node = { kind: "binary", operator: operator.type, left: node, right: multiplicative(), line: operator.line };
+          }
+          return node;
+        };
+
+        while (position < tokens.length) {
+          const attribute = expect("ATTRIBUTE", "uma declaração de atributo");
+          expect(":", "“:”");
+          const declaration = { name: attribute.value, line: attribute.line };
+          if (declaration.name === "ELEMENTO") {
+            const element = expect("ELEMENT", "um elemento válido");
+            declaration.value = element.value;
+          } else if (declaration.name === "EFEITO") {
+            const text = expect("TEXT", "um texto entre aspas");
+            declaration.value = text.value;
+            if (peek() && peek().type === "POR") {
+              take();
+              declaration.duration = expression();
+              expect("TURNO", "“TURNO”");
+            }
+          } else {
+            declaration.value = expression();
+          }
+          declarations.push(declaration);
+        }
+
+        const declared = new Set();
+        const firstByName = new Map();
+        for (const declaration of declarations) {
+          if (declared.has(declaration.name)) {
+            errors.push(`Linha ${declaration.line}: atributo “${declaration.name}” já foi declarado.`);
+          }
+          declared.add(declaration.name);
+          firstByName.set(declaration.name, declaration);
+          checkDivisions(declaration.value);
+          if (nonNegativeAttributes.has(declaration.name)) {
+            const value = evaluate(declaration.value);
+            if (value !== null && value < 0) {
+              errors.push(`Linha ${declaration.line}: “${declaration.name}” não pode ter valor negativo (${value}).`);
+            }
+          }
+        }
+
+        for (const required of ["NIVEL_REQUERIDO", "ELEMENTO", "MANA"]) {
+          if (!declared.has(required)) errors.push(`Atributo obrigatório “${required}” não foi declarado.`);
+        }
+
+        const getStatic = (name) => {
+          const declaration = firstByName.get(name);
+          return declaration ? evaluate(declaration.value) : null;
+        };
+        const level = getStatic("NIVEL_REQUERIDO");
+        const mana = getStatic("MANA");
+        const damage = getStatic("DANO");
+        const area = getStatic("AREA");
+        const range = getStatic("ALCANCE");
+        const element = firstByName.get("ELEMENTO")?.value;
+        const effect = firstByName.get("EFEITO")?.value;
+
+        if (level === 1 && mana === 0 && damage !== null && damage > 15) {
+          warnings.push(`Linha ${firstByName.get("MANA").line}: feitiço de nível 1 sem custo de mana possui dano elevado (${damage} > 15).`);
+        }
+        if (area !== null && area > 0 && range === 0 && !new Set(["LUZ", "TERRA", "ESCUDO"]).has(element)) {
+          warnings.push(`Linha ${firstByName.get("AREA").line}: área maior que zero com alcance zero atingirá o próprio conjurador.`);
+        }
+        if (element && effect && contradictions[element]) {
+          const lowerEffect = effect.toLowerCase();
+          if (contradictions[element].some((word) => lowerEffect.includes(word))) {
+            warnings.push(`Linha ${firstByName.get("EFEITO").line}: o efeito pode contradizer o elemento “${element}”.`);
+          }
+        }
+
+        return { errors, warnings, declarations: declarations.length };
+      }
+
+      function evaluate(node) {
+        if (!node) return null;
+        if (node.kind === "number") return node.value;
+        if (node.kind === "variable") return null;
+        const left = evaluate(node.left);
+        const right = evaluate(node.right);
+        if (left === null || right === null) return null;
+        if (node.operator === "+") return left + right;
+        if (node.operator === "-") return left - right;
+        if (node.operator === "*") return left * right;
+        if (node.operator === "/") return right === 0 ? 0 : left / right;
+        return null;
+      }
+
+      function showResult(result) {
+        const status = document.querySelector("#statusCard");
+        const title = document.querySelector("#statusTitle");
+        const description = document.querySelector("#statusDescription");
+        const icon = document.querySelector("#statusIcon");
+        messages.replaceChildren();
+        document.querySelector("#emptyNote").hidden = result.errors.length + result.warnings.length > 0;
+
+        if (result.errors.length) {
+          status.className = "status-card error";
+          icon.textContent = "×";
+          title.textContent = "Há erros no feitiço";
+          description.textContent = `${result.errors.length} erro(s) encontrado(s). Corrija os itens abaixo e tente de novo.`;
+        } else if (result.warnings.length) {
+          status.className = "status-card warning";
+          icon.textContent = "!";
+          title.textContent = "Válido com avisos";
+          description.textContent = `${result.declarations} atributo(s) válido(s), com ${result.warnings.length} aviso(s) de balanceamento.`;
+        } else {
+          status.className = "status-card success";
+          icon.textContent = "✓";
+          title.textContent = "Feitiço válido";
+          description.textContent = `${result.declarations} atributo(s) passaram nas análises sintática e semântica.`;
+        }
+
+        for (const error of result.errors) addMessage(error, "error");
+        for (const warning of result.warnings) addMessage(warning, "warning");
+      }
+
+      function addMessage(text, kind) {
+        const item = document.createElement("li");
+        item.className = `message ${kind}`;
+        const label = document.createElement("strong");
+        label.textContent = kind === "error" ? "ERRO" : "AVISO";
+        const detail = document.createElement("span");
+        detail.textContent = text;
+        item.append(label, detail);
+        messages.append(item);
+      }
+
+      function analyze() {
+        try {
+          showResult(parse(editor.value));
+        } catch (error) {
+          showResult({ errors: [error.message], warnings: [], declarations: 0 });
+        }
+      }
+
+      function updateLineCount() {
+        const count = editor.value.split(/\r\n|\r|\n/).length;
+        document.querySelector("#lineCount").textContent = `${count} ${count === 1 ? "linha" : "linhas"}`;
+      }
+
+      function renderFiles() {
+        fileList.replaceChildren();
+        fileList.classList.toggle("visible", files.length > 0);
+        files.forEach((file, index) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = `file-item${index === activeFile ? " active" : ""}`;
+          button.textContent = file.name;
+          button.title = file.name;
+          button.addEventListener("click", () => loadFile(index));
+          fileList.append(button);
+        });
+      }
+
+      function loadFile(index) {
+        activeFile = index;
+        editor.value = files[index].content;
+        document.querySelector("#currentFile").textContent = files[index].name;
+        renderFiles();
+        updateLineCount();
+        analyze();
+      }
+
+      async function openFiles(selectedFiles) {
+        const loaded = await Promise.all(Array.from(selectedFiles).map(async (file) => ({
+          name: file.name,
+          content: await file.text()
+        })));
+        files.splice(0, files.length, ...loaded);
+        if (files.length) loadFile(0);
+      }
+
+      editor.value = sample;
+      updateLineCount();
+      analyze();
+      document.querySelector("#analyzeButton").addEventListener("click", analyze);
+      document.querySelector("#clearButton").addEventListener("click", () => {
+        editor.value = "";
+        document.querySelector("#currentFile").textContent = "novo_feitico.spell";
+        activeFile = -1;
+        renderFiles();
+        updateLineCount();
+        analyze();
+        editor.focus();
+      });
+      editor.addEventListener("input", updateLineCount);
+      editor.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) analyze();
+      });
+      fileInput.addEventListener("change", (event) => openFiles(event.target.files));
+      document.querySelector(".shell").addEventListener("dragover", (event) => {
+        if (Array.from(event.dataTransfer.types).includes("Files")) event.preventDefault();
+      });
+      document.querySelector(".shell").addEventListener("drop", (event) => {
+        if (!event.dataTransfer.files.length) return;
+        event.preventDefault();
+        openFiles(event.dataTransfer.files);
+      });
+    })();
+  </script>
+</body>
+</html>
