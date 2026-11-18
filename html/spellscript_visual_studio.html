@@ -1,0 +1,1594 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SpellScript Studio - RPG DSL Visual Playground</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['"Fira Code"', 'monospace'],
+            rpg: ['Cinzel', 'serif'],
+          },
+          colors: {
+            arcane: {
+              950: '#070913',
+              900: '#0b1021',
+              850: '#101730',
+              800: '#162042',
+              700: '#233266',
+              purple: '#8b5cf6',
+              cyan: '#06b6d4',
+              gold: '#f59e0b',
+              crimson: '#ef4444'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Custom scrollbars */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0b1021;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #334155;
+    }
+    .rune-glow {
+      text-shadow: 0 0 12px rgba(139, 92, 246, 0.6), 0 0 24px rgba(6, 182, 212, 0.4);
+    }
+    .card-foil {
+      background: radial-gradient(circle at 50% 0%, rgba(139, 92, 246, 0.15), transparent 70%);
+    }
+    .element-fogo { --elem-color: #ef4444; --elem-bg: rgba(239, 68, 68, 0.15); }
+    .element-gelo { --elem-color: #38bdf8; --elem-bg: rgba(56, 189, 248, 0.15); }
+    .element-raio { --elem-color: #facc15; --elem-bg: rgba(250, 204, 21, 0.15); }
+    .element-terra { --elem-color: #84cc16; --elem-bg: rgba(132, 204, 22, 0.15); }
+    .element-agua { --elem-color: #06b6d4; --elem-bg: rgba(6, 182, 212, 0.15); }
+    .element-ar { --elem-color: #a78bfa; --elem-bg: rgba(167, 139, 250, 0.15); }
+    .element-luz { --elem-color: #fef08a; --elem-bg: rgba(254, 240, 138, 0.2); }
+    .element-trevas { --elem-color: #c084fc; --elem-bg: rgba(192, 132, 252, 0.2); }
+  </style>
+</head>
+
+<body class="bg-arcane-950 text-slate-100 min-h-screen flex flex-col font-sans selection:bg-purple-600 selection:text-white">
+
+  <!-- ================= TOP HEADER ================= -->
+  <header class="border-b border-arcane-800 bg-arcane-900/80 backdrop-blur-md sticky top-0 z-50 px-4 lg:px-8 py-3">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+
+      <!-- Logo & Brand -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-cyan-500 p-[2px] shadow-lg shadow-purple-500/20">
+          <div class="w-full h-full bg-arcane-950 rounded-[10px] flex items-center justify-center">
+            <i data-lucide="sparkles" class="w-5 h-5 text-cyan-400"></i>
+          </div>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="font-rpg font-bold tracking-wider text-lg lg:text-xl text-white rune-glow">SpellScript</h1>
+            <span class="text-[10px] tracking-widest font-mono uppercase bg-purple-950/80 text-purple-300 border border-purple-800 px-2 py-0.5 rounded-full">Studio E4</span>
+          </div>
+          <p class="text-xs text-slate-400 font-sans">Compilador & Playground Visual de DSL de RPG</p>
+        </div>
+      </div>
+
+      <!-- Center Presets Dropdown -->
+      <div class="flex items-center gap-3 w-full md:w-auto">
+        <label for="presetSelect" class="text-xs font-mono text-slate-400 flex items-center gap-1.5 whitespace-nowrap">
+          <i data-lucide="scroll" class="w-3.5 h-3.5 text-purple-400"></i> Exemplos:
+        </label>
+        <div class="relative flex-1 md:w-72">
+          <select id="presetSelect" onchange="carregarPreset()" class="w-full bg-arcane-850 border border-arcane-700 text-xs text-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:border-cyan-500 transition-colors shadow-inner cursor-pointer appearance-none">
+            <optgroup label="✨ Feitiços Válidos">
+              <option value="bola_de_fogo">Bola de Fogo (E3/E4)</option>
+              <option value="tempestade_eletrica">Tempestade Elétrica (Área Ampla)</option>
+              <option value="cura_menor">Cura Menor (Fórmula com Variável)</option>
+              <option value="barreira_terrestre">Barreira Terrestre (Efeito/Turnos)</option>
+            </optgroup>
+            <optgroup label="⚠️ Casos Inválidos & Testes">
+              <option value="err_dois_pontos">Sintático: Falta ':' (3 Partes)</option>
+              <option value="err_expr">Sintático: Expressão Malformada</option>
+              <option value="err_div_zero">Semântico: Divisão por Zero (100 / 0)</option>
+              <option value="err_duplicado">Semântico: Atributo Duplicado</option>
+              <option value="err_faltante">Semântico: Falta Atributo Obrigatório</option>
+              <option value="err_variavel">Semântico: Variável Inválida</option>
+              <option value="err_balanceamento">Semântico: Alerta de Balanceamento</option>
+            </optgroup>
+          </select>
+          <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 absolute right-3 top-2.5 pointer-events-none"></i>
+        </div>
+
+        <!-- Compile Button -->
+        <button id="btnCompilar" onclick="compilarScript()" class="bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white font-medium text-xs px-4 py-2 rounded-lg flex items-center gap-2 shadow-lg shadow-purple-600/25 active:scale-95 transition-all whitespace-nowrap">
+          <i data-lucide="play" class="w-3.5 h-3.5 fill-current"></i>
+          <span>Compilar</span>
+          <span class="text-[10px] opacity-75 font-mono hidden sm:inline">(Ctrl+Enter)</span>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ================= MAIN WORKSPACE ================= -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- LEFT COLUMN: CODE EDITOR (5 Cols on large) -->
+    <section class="lg:col-span-5 flex flex-col bg-arcane-900 border border-arcane-800 rounded-2xl shadow-xl overflow-hidden min-h-[520px]">
+
+      <!-- Editor Header -->
+      <div class="bg-arcane-850 px-4 py-2.5 border-b border-arcane-800 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-rose-500/80"></span>
+          <span class="w-2.5 h-2.5 rounded-full bg-amber-500/80"></span>
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-500/80"></span>
+          <span class="text-xs font-mono text-slate-400 ml-2 flex items-center gap-1.5">
+            <i data-lucide="file-code" class="w-3.5 h-3.5 text-cyan-400"></i> feitiço.spell
+          </span>
+        </div>
+        <div class="text-[11px] font-mono text-slate-500 flex items-center gap-2">
+          <span id="lineColCounter">Linha 1, Col 1</span>
+          <button onclick="copiarCodigo()" title="Copiar código" class="p-1 hover:text-slate-200 transition-colors">
+            <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Editor Body with Line Numbers -->
+      <div class="relative flex-1 flex overflow-hidden font-mono text-xs bg-arcane-950">
+        <!-- Line Numbers Column -->
+        <div id="lineNumbers" class="select-none py-3 px-3 text-right text-slate-600 bg-arcane-900/60 border-r border-arcane-850 min-w-[3rem] font-mono leading-5">
+          1
+        </div>
+        <!-- Raw Textarea -->
+        <textarea id="codeEditor" spellcheck="false" class="w-full flex-1 bg-transparent text-slate-100 p-3 leading-5 resize-none focus:outline-none focus:ring-0 font-mono text-xs overflow-auto selection:bg-purple-900/60" placeholder="# Defina seu feitiço aqui..."></textarea>
+      </div>
+
+      <!-- Editor Quick Cheat-sheet footer -->
+      <div class="bg-arcane-850/80 px-4 py-2 border-t border-arcane-800 text-[11px] text-slate-400 flex flex-wrap items-center justify-between gap-2">
+        <div class="flex items-center gap-3">
+          <span class="text-purple-400 font-mono">NIVEL_REQUERIDO</span>
+          <span class="text-cyan-400 font-mono">ELEMENTO</span>
+          <span class="text-amber-400 font-mono">MANA</span>
+          <span class="text-rose-400 font-mono">DANO</span>
+        </div>
+        <span class="text-[10px] text-slate-500">Variáveis: <code class="text-slate-300">NIVEL_CONJURADOR, INTELIGENCIA, FORCA, AGILIDADE, SABEDORIA, TURNO</code></span>
+      </div>
+    </section>
+
+    <!-- RIGHT COLUMN: INSPECTOR & PREVIEW (7 Cols on large) -->
+    <section class="lg:col-span-7 flex flex-col bg-arcane-900 border border-arcane-800 rounded-2xl shadow-xl overflow-hidden min-h-[520px]">
+
+      <!-- Tabs Header -->
+      <div class="bg-arcane-850 px-4 pt-2 border-b border-arcane-800 flex items-center justify-between">
+        <nav class="flex space-x-1" aria-label="Tabs">
+          <button onclick="mudarTab('card')" id="tabBtn-card" class="tab-btn active px-3.5 py-2 text-xs font-medium rounded-t-lg border-b-2 border-cyan-400 text-cyan-400 flex items-center gap-2 transition-all">
+            <i data-lucide="shield" class="w-3.5 h-3.5"></i>
+            <span>Carta RPG</span>
+          </button>
+          <button onclick="mudarTab('ast')" id="tabBtn-ast" class="tab-btn px-3.5 py-2 text-xs font-medium rounded-t-lg border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 transition-all">
+            <i data-lucide="git-fork" class="w-3.5 h-3.5"></i>
+            <span>Árvore Sintática (AST)</span>
+          </button>
+          <button onclick="mudarTab('pipeline')" id="tabBtn-pipeline" class="tab-btn px-3.5 py-2 text-xs font-medium rounded-t-lg border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 transition-all">
+            <i data-lucide="layers" class="w-3.5 h-3.5"></i>
+            <span>Pipeline (E2, E3, E4)</span>
+            <span id="pipelineStatusDot" class="w-2 h-2 rounded-full bg-emerald-400"></span>
+          </button>
+          <button onclick="mudarTab('saved')" id="tabBtn-saved" class="tab-btn px-3.5 py-2 text-xs font-medium rounded-t-lg border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 transition-all">
+            <i data-lucide="book-marked" class="w-3.5 h-3.5"></i>
+            <span>Feitiços Salvos</span>
+          </button>
+        </nav>
+
+        <span id="compilationTimestamp" class="text-[10px] font-mono text-slate-500 hidden sm:inline">Pronto</span>
+      </div>
+
+      <!-- Tab Content Area -->
+      <div class="flex-1 p-5 overflow-auto relative">
+
+        <!-- ================= TAB 1: VISUAL RPG SPELL CARD ================= -->
+        <div id="tabContent-card" class="h-full flex flex-col items-center justify-center">
+
+          <!-- When Valid: The High Quality RPG Card -->
+          <div id="rpgCardWrapper" class="w-full max-w-sm rounded-2xl p-[2px] bg-gradient-to-b from-purple-500/50 via-slate-700/30 to-arcane-800 shadow-2xl relative transition-all duration-300">
+            <div id="rpgCardInner" class="bg-arcane-900 rounded-[14px] p-5 card-foil border border-arcane-700/50 flex flex-col gap-4">
+
+              <!-- Card Top: Name & Level Badge -->
+              <div class="flex items-start justify-between border-b border-arcane-800/80 pb-3">
+                <div>
+                  <span id="cardSpellType" class="text-[10px] font-mono uppercase tracking-widest text-slate-400">Magia Ofensiva</span>
+                  <h3 id="cardSpellTitle" class="font-rpg font-extrabold text-lg text-white tracking-wide">Bola de Fogo</h3>
+                </div>
+                <div class="text-right">
+                  <span class="text-[9px] uppercase tracking-wider text-slate-400 block font-mono">Nível</span>
+                  <span id="cardLevelBadge" class="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold font-mono bg-purple-900/60 text-purple-300 border border-purple-700">Nv. 5</span>
+                </div>
+              </div>
+
+              <!-- Card Element Banner & Artwork Illustration -->
+              <div class="relative w-full h-36 rounded-xl overflow-hidden bg-gradient-to-br from-slate-900 to-arcane-950 border border-arcane-800 flex items-center justify-center group">
+                <!-- Ambient glow based on element -->
+                <div id="cardArtworkGlow" class="absolute inset-0 bg-red-600/20 blur-xl opacity-80 transition-all duration-500"></div>
+
+                <!-- Central Elemental Icon -->
+                <img id="cardElementArtwork" alt="" class="absolute inset-0 z-0 w-full h-full object-cover opacity-90 transition-transform duration-500 group-hover:scale-105">
+                <div id="cardCentralIcon" class="relative z-10 w-16 h-16 rounded-full bg-arcane-900/70 border border-red-500/50 flex items-center justify-center shadow-lg transform group-hover:scale-105 transition-transform">
+                  <i data-lucide="flame" class="w-9 h-9 text-red-500"></i>
+                </div>
+
+                <!-- Element Pill Badge -->
+                <div class="absolute bottom-2 left-2 z-10">
+                  <span id="cardElementBadge" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-mono font-bold tracking-wider bg-red-950/80 text-red-400 border border-red-800 backdrop-blur-sm">
+                    <i data-lucide="flame" class="w-3 h-3"></i> FOGO
+                  </span>
+                </div>
+
+                <!-- Range / Radius HUD badge -->
+                <div class="absolute bottom-2 right-2 z-10 flex gap-1 font-mono text-[10px]">
+                  <span id="cardRangeBadge" class="bg-arcane-900/80 text-slate-300 px-2 py-0.5 rounded border border-arcane-700/80 backdrop-blur-sm" title="Alcance">
+                    🏹 20.5m
+                  </span>
+                  <span id="cardAreaBadge" class="bg-arcane-900/80 text-slate-300 px-2 py-0.5 rounded border border-arcane-700/80 backdrop-blur-sm" title="Área de Impacto">
+                    💥 5m
+                  </span>
+                </div>
+              </div>
+
+              <!-- Key Metrics Grid (Mana, Dano, DPS) -->
+              <div class="grid grid-cols-2 gap-2 text-xs font-mono">
+                <!-- Mana Box -->
+                <div class="bg-arcane-950/70 border border-arcane-800 rounded-lg p-2.5 flex flex-col">
+                  <span class="text-[10px] text-cyan-400 flex items-center gap-1">
+                    <i data-lucide="droplet" class="w-3 h-3"></i> Custo de Mana
+                  </span>
+                  <div class="flex items-baseline gap-1 mt-1">
+                    <span id="cardManaBase" class="text-base font-bold text-slate-100">20</span>
+                    <span id="cardManaPerTurn" class="text-[10px] text-cyan-300/80">+5/turno</span>
+                  </div>
+                </div>
+
+                <!-- Dano Box -->
+                <div class="bg-arcane-950/70 border border-arcane-800 rounded-lg p-2.5 flex flex-col">
+                  <span class="text-[10px] text-rose-400 flex items-center gap-1">
+                    <i data-lucide="swords" class="w-3 h-3"></i> Poder / Dano
+                  </span>
+                  <div class="flex items-baseline gap-1 mt-1">
+                    <span id="cardDamageValue" class="text-base font-bold text-slate-100">30</span>
+                    <span class="text-[10px] text-slate-400">pts</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Effect & Flavor description -->
+              <div id="cardEffectBox" class="bg-purple-950/30 border border-purple-900/50 rounded-lg p-2.5 flex items-start gap-2">
+                <i data-lucide="sparkle" class="w-4 h-4 text-purple-400 shrink-0 mt-0.5"></i>
+                <div class="text-[11px] leading-relaxed">
+                  <span class="font-semibold text-purple-300">Efeito Adicional:</span>
+                  <span id="cardEffectText" class="text-slate-300">Aplica "Queimadura" durante 2 turnos.</span>
+                </div>
+              </div>
+
+              <!-- Balance & Warning Notice if present -->
+              <div id="cardBalanceWarning" class="hidden bg-amber-950/40 border border-amber-800/80 rounded-lg p-2.5 flex items-center gap-2 text-[11px] text-amber-300">
+                <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-400 shrink-0"></i>
+                <span id="cardBalanceMsg">Aviso de balanceamento: Dano muito elevado para o nível.</span>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- When Invalid: Error Card Visual -->
+          <div id="rpgCardErrorState" class="hidden w-full max-w-sm rounded-2xl p-6 bg-rose-950/30 border border-rose-800/60 text-center flex flex-col items-center gap-3">
+            <div class="w-12 h-12 rounded-full bg-rose-900/50 border border-rose-700 flex items-center justify-center text-rose-400">
+              <i data-lucide="shield-alert" class="w-6 h-6"></i>
+            </div>
+            <h4 class="font-rpg font-bold text-rose-300 text-base">Falha na Convocação</h4>
+            <p id="rpgCardErrorMsg" class="text-xs text-rose-200/80 leading-relaxed font-sans">
+              O feitiço possui anomalias de estrutura sintática ou violações semânticas que impedem sua materialização.
+            </p>
+            <button onclick="mudarTab('pipeline')" class="mt-2 text-xs font-mono text-cyan-400 hover:text-cyan-300 underline flex items-center gap-1">
+              Ver Relatório do Compilador <i data-lucide="arrow-right" class="w-3 h-3"></i>
+            </button>
+          </div>
+
+        </div>
+
+        <!-- ================= TAB 2: AST VIEWER ================= -->
+        <div id="tabContent-ast" class="h-full hidden flex flex-col gap-4">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-mono text-purple-400 uppercase tracking-wider font-semibold">Estrutura da AST</span>
+              <span class="text-[11px] text-slate-500">(Padrão Visitor E3)</span>
+            </div>
+            <button onclick="copiarAST()" class="text-xs font-mono text-slate-400 hover:text-slate-200 flex items-center gap-1">
+              <i data-lucide="copy" class="w-3 h-3"></i> Copiar Tuplas
+            </button>
+          </div>
+
+          <!-- Interactive Tree View Visualizer -->
+          <div class="flex-1 bg-arcane-950 rounded-xl p-4 border border-arcane-800 overflow-auto font-mono text-xs">
+            <div id="astTreeVisualizer" class="space-y-2">
+              <!-- Dynamically populated AST nodes -->
+            </div>
+          </div>
+
+          <!-- Raw Tuple Box -->
+          <div class="bg-arcane-950/80 rounded-xl p-3 border border-arcane-800 font-mono text-[11px] text-slate-400">
+            <span class="text-[10px] text-slate-500 uppercase tracking-wider block mb-1">Representação em Tuplas Python:</span>
+            <div id="astTupleOutput" class="text-cyan-300 break-all select-all">('programa', [])</div>
+          </div>
+        </div>
+
+        <!-- ================= TAB 3: PIPELINE COMPILER AUDIT ================= -->
+        <div id="tabContent-pipeline" class="h-full hidden flex flex-col gap-4">
+
+          <div class="text-xs text-slate-400 flex items-center justify-between">
+            <span>Diagnóstico do Pipeline de Compilação</span>
+            <span class="font-mono text-[10px] text-slate-500">ANTLR4 + Python Visitor + E4 Validator</span>
+          </div>
+
+          <!-- Step 1: Lexical (E2) -->
+          <div id="pipeCard-lexico" class="bg-arcane-950 rounded-xl p-4 border border-emerald-900/40 flex flex-col gap-2">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                <span class="text-xs font-semibold text-slate-200">1. Análise Léxica (E2)</span>
+              </div>
+              <span id="badgeLexico" class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800">OK</span>
+            </div>
+            <p id="pipeDescLexico" class="text-xs text-slate-400">Todos os caracteres e palavras-chave foram reconhecidos com sucesso.</p>
+            <div id="tokensList" class="flex flex-wrap gap-1 mt-1 max-h-24 overflow-y-auto">
+              <!-- Token badges -->
+            </div>
+          </div>
+
+          <!-- Step 2: Syntactic (E3) -->
+          <div id="pipeCard-sintatico" class="bg-arcane-950 rounded-xl p-4 border border-emerald-900/40 flex flex-col gap-2">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span id="dotSintatico" class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                <span class="text-xs font-semibold text-slate-200">2. Análise Sintática & AST (E3)</span>
+              </div>
+              <span id="badgeSintatico" class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800">OK</span>
+            </div>
+            <p id="pipeDescSintatico" class="text-xs text-slate-400">Gramática conferida e nós validados pelo autômato LL(*).</p>
+            <!-- 3-part error format container -->
+            <div id="sintaticoErrorBox" class="hidden mt-2 bg-rose-950/40 border border-rose-800/80 rounded-lg p-3 text-xs font-mono text-rose-300">
+              <div class="flex items-center gap-2 text-rose-400 font-semibold mb-1">
+                <i data-lucide="x-circle" class="w-4 h-4"></i> Erro Sintático (Formato de 3 Partes):
+              </div>
+              <div id="sintaticoErrorDetail" class="text-[11px] space-y-1 text-slate-200">
+                <!-- onde, esperava, encontrou -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 3: Semantic (E4) -->
+          <div id="pipeCard-semantico" class="bg-arcane-950 rounded-xl p-4 border border-emerald-900/40 flex flex-col gap-2">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span id="dotSemantico" class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                <span class="text-xs font-semibold text-slate-200">3. Análise Semântica (E4)</span>
+              </div>
+              <span id="badgeSemantico" class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800">OK</span>
+            </div>
+            <p id="pipeDescSemantico" class="text-xs text-slate-400">Escopo, atributos obrigatórios, variáveis e divisão por zero conferidos.</p>
+
+            <!-- Semantic Errors List -->
+            <div id="semanticoErrorBox" class="hidden mt-2 bg-rose-950/40 border border-rose-800/80 rounded-lg p-3 text-xs font-mono text-rose-300 space-y-1.5">
+              <!-- Injected by JS -->
+            </div>
+
+            <!-- Semantic Warnings List -->
+            <div id="semanticoWarningBox" class="hidden mt-2 bg-amber-950/40 border border-amber-800/80 rounded-lg p-3 text-xs font-mono text-amber-300 space-y-1">
+              <!-- Injected by JS -->
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ================= TAB 4: SAVED SPELLS ================= -->
+        <div id="tabContent-saved" class="h-full hidden flex flex-col gap-4">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 class="font-rpg text-sm font-bold text-white">Biblioteca Arcana</h2>
+              <p class="text-xs text-slate-400 mt-1">Seus feitiços ficam salvos neste navegador.</p>
+            </div>
+            <button onclick="iniciarSalvarFeitico()" class="bg-purple-600 hover:bg-purple-500 text-white text-xs font-medium px-3 py-2 rounded-lg flex items-center gap-2 transition-colors">
+              <i data-lucide="bookmark-plus" class="w-4 h-4"></i> Salvar feitiço atual
+            </button>
+          </div>
+          <form id="savedSpellForm" class="hidden bg-arcane-950 border border-arcane-700 rounded-xl p-3 flex flex-wrap items-end gap-3" onsubmit="confirmarSalvarFeitico(event)">
+            <label for="savedSpellName" class="flex-1 min-w-48 text-xs text-slate-400">
+              Nome do feitiço
+              <input id="savedSpellName" required maxlength="80" class="mt-1 w-full bg-arcane-900 border border-arcane-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-purple-500">
+            </label>
+            <button type="submit" class="bg-cyan-700 hover:bg-cyan-600 text-white text-xs rounded-lg px-3 py-2">Salvar na biblioteca</button>
+            <button type="button" onclick="cancelarSalvarFeitico()" class="text-slate-400 hover:text-white text-xs px-2 py-2">Cancelar</button>
+          </form>
+          <div id="savedSpellsList" class="grid grid-cols-1 md:grid-cols-2 gap-3 overflow-auto">
+            <p id="savedSpellsEmpty" class="col-span-full text-center text-sm text-slate-500 py-12">Nenhum feitiço salvo ainda.</p>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- ================= FLOATING TOAST NOTIFICATION ================= -->
+  <div id="toastNotification" class="fixed bottom-5 right-5 z-50 transform translate-y-24 opacity-0 transition-all duration-300 flex items-center gap-3 px-4 py-3 rounded-xl shadow-2xl backdrop-blur-md bg-arcane-900/95 border border-arcane-700 text-xs font-mono">
+    <i id="toastIcon" data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
+    <span id="toastMessage" class="text-slate-200">Mensagem do compilador</span>
+  </div>
+
+  <!-- ================= LOGIC & DSL COMPILER SCRIPT ================= -->
+  <script>
+    // Presets database
+    const PRESETS = {
+      bola_de_fogo: `NIVEL_REQUERIDO: 5
+ELEMENTO: FOGO
+ALCANCE: 20.5
+AREA: 5
+MANA: 20 + 5 / TURNO
+DANO: 3 * NIVEL_CONJURADOR
+EFEITO: "Queimadura" POR 2 TURNO`,
+
+      tempestade_eletrica: `NIVEL_REQUERIDO: 8
+ELEMENTO: RAIO
+ALCANCE: 30
+AREA: 12
+MANA: 45 + 10 / TURNO
+DANO: 5 * NIVEL_CONJURADOR + 10
+EFEITO: "Paralisia" POR 1 TURNO`,
+
+      lanca_de_gelo: `NIVEL_REQUERIDO: 3
+ELEMENTO: GELO
+ALCANCE: 18
+AREA: 0
+MANA: 15
+DANO: 4 * NIVEL_CONJURADOR
+EFEITO: "Lentidão" POR 3 TURNO`,
+
+      cura_menor: `NIVEL_REQUERIDO: 2
+ELEMENTO: LUZ
+ALCANCE: 10
+AREA: 0
+MANA: 15
+DANO: 10 + NIVEL_CONJURADOR * 3
+EFEITO: "Regeneração" POR 2 TURNO`,
+
+      barreira_terrestre: `NIVEL_REQUERIDO: 4
+ELEMENTO: TERRA
+ALCANCE: 5
+AREA: 3
+MANA: 25
+DANO: 0
+EFEITO: "Fortificação" POR 4 TURNO`,
+
+      err_dois_pontos: `NIVEL_REQUERIDO: 5
+ELEMENTO FOGO
+MANA: 20`,
+
+      err_expr: `NIVEL_REQUERIDO: 5
+ELEMENTO: FOGO
+DANO: 10 + * 5`,
+
+      err_div_zero: `NIVEL_REQUERIDO: 2
+ELEMENTO: TERRA
+MANA: 100 / 0`,
+
+      err_duplicado: `NIVEL_REQUERIDO: 3
+ELEMENTO: FOGO
+ELEMENTO: GELO
+DANO: 20`,
+
+      err_faltante: `NIVEL_REQUERIDO: 3
+DANO: 15
+MANA: 10`,
+
+      err_variavel: `NIVEL_REQUERIDO: 4
+ELEMENTO: AR
+DANO: 10 + VITALIDADE * 2`,
+
+      err_balanceamento: `NIVEL_REQUERIDO: 1
+ELEMENTO: TREVAS
+MANA: 0
+DANO: 95`
+    };
+
+    const ELEMENT_CONFIG = {
+      FOGO: { icon: 'flame', color: '#ef4444', classText: 'text-red-400', classBg: 'bg-red-950/80', classBorder: 'border-red-800' },
+      GELO: { icon: 'snowflake', color: '#38bdf8', classText: 'text-sky-400', classBg: 'bg-sky-950/80', classBorder: 'border-sky-800' },
+      RAIO: { icon: 'zap', color: '#facc15', classText: 'text-yellow-400', classBg: 'bg-yellow-950/80', classBorder: 'border-yellow-800' },
+      TERRA: { icon: 'mountain', color: '#84cc16', classText: 'text-lime-400', classBg: 'bg-lime-950/80', classBorder: 'border-lime-800' },
+      AGUA: { icon: 'waves', color: '#06b6d4', classText: 'text-cyan-400', classBg: 'bg-cyan-950/80', classBorder: 'border-cyan-800' },
+      AR: { icon: 'wind', color: '#a78bfa', classText: 'text-purple-400', classBg: 'bg-purple-950/80', classBorder: 'border-purple-800' },
+      LUZ: { icon: 'sun', color: '#fef08a', classText: 'text-amber-300', classBg: 'bg-amber-950/80', classBorder: 'border-amber-800' },
+      TREVAS: { icon: 'moon', color: '#c084fc', classText: 'text-fuchsia-400', classBg: 'bg-fuchsia-950/80', classBorder: 'border-fuchsia-800' }
+    };
+
+    const CONTRADICOES_ELEMENTAIS = {
+      FOGO: ['congel', 'gelo', 'frio', 'geada'],
+      GELO: ['queim', 'fogo', 'chama', 'incend'],
+      AGUA: ['queim', 'fogo', 'chama', 'incend'],
+      RAIO: ['congel', 'queim'],
+      TROVAO: ['congel', 'queim'],
+      LUZ: ['trevas', 'necro', 'maldic'],
+      TREVAS: ['sagrad', 'cura', 'bencao']
+    };
+
+    // DOM Elements
+    const editor = document.getElementById('codeEditor');
+    const lineNumbers = document.getElementById('lineNumbers');
+    const lineColCounter = document.getElementById('lineColCounter');
+    let lastCompiledAST = null;
+    const SAVED_SPELLS_KEY = 'spellscript.savedSpells';
+
+    // Initialize Page
+    window.addEventListener('DOMContentLoaded', () => {
+      editor.value = PRESETS.bola_de_fogo;
+      atualizarNumerosDeLinha();
+      compilarScript();
+      lucide.createIcons();
+
+      // Keyboard shortcut Ctrl+Enter to compile
+      window.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+          e.preventDefault();
+          compilarScript();
+        }
+      });
+
+      // Update line & column indicator on input/click
+      editor.addEventListener('input', () => {
+        atualizarNumerosDeLinha();
+      });
+      editor.addEventListener('keyup', atualizarLinhaColuna);
+      editor.addEventListener('click', atualizarLinhaColuna);
+      editor.addEventListener('scroll', () => {
+        lineNumbers.scrollTop = editor.scrollTop;
+      });
+      renderizarFeiticosSalvos();
+    });
+
+    function atualizarNumerosDeLinha() {
+      const lines = editor.value.split('\n').length;
+      lineNumbers.innerHTML = Array.from({ length: lines }, (_, i) => i + 1).join('<br>');
+    }
+
+    function atualizarLinhaColuna() {
+      const pos = editor.selectionStart;
+      const textUntilCursor = editor.value.substring(0, pos);
+      const lines = textUntilCursor.split('\n');
+      const line = lines.length;
+      const col = lines[lines.length - 1].length + 1;
+      lineColCounter.innerText = `Linha ${line}, Col ${col}`;
+    }
+
+    function carregarPreset() {
+      const val = document.getElementById('presetSelect').value;
+      if (PRESETS[val]) {
+        editor.value = PRESETS[val];
+        atualizarNumerosDeLinha();
+        compilarScript();
+        showToast(`Preset "${val}" carregado com sucesso`, 'check-circle');
+      }
+    }
+
+    function mudarTab(tabName) {
+      ['card', 'ast', 'pipeline', 'saved'].forEach(t => {
+        const btn = document.getElementById(`tabBtn-${t}`);
+        const content = document.getElementById(`tabContent-${t}`);
+        if (t === tabName) {
+          btn.className = "tab-btn active px-3.5 py-2 text-xs font-medium rounded-t-lg border-b-2 border-cyan-400 text-cyan-400 flex items-center gap-2 transition-all";
+          content.classList.remove('hidden');
+        } else {
+          btn.className = "tab-btn px-3.5 py-2 text-xs font-medium rounded-t-lg border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 transition-all";
+          content.classList.add('hidden');
+        }
+      });
+      lucide.createIcons();
+    }
+
+    // =========================================================================
+    // CLIENT-SIDE DSL ENGINE (Lexer, Parser, AST Builder, Semantic Analyzer)
+    // =========================================================================
+
+    function compilarScript() {
+      const source = editor.value;
+      const time = new Date().toLocaleTimeString();
+      document.getElementById('compilationTimestamp').innerText = `Compilado às ${time}`;
+      lastCompiledAST = null;
+      document.getElementById('astTreeVisualizer').replaceChildren();
+      document.getElementById('astTupleOutput').innerText = "('programa', [])";
+
+      // Reset Pipeline Status
+      const dotStatus = document.getElementById('pipelineStatusDot');
+      const errorBoxSintatico = document.getElementById('sintaticoErrorBox');
+      const errorBoxSemantico = document.getElementById('semanticoErrorBox');
+      const warnBoxSemantico = document.getElementById('semanticoWarningBox');
+      errorBoxSintatico.classList.add('hidden');
+      errorBoxSemantico.classList.add('hidden');
+      warnBoxSemantico.classList.add('hidden');
+      errorBoxSemantico.replaceChildren();
+      warnBoxSemantico.replaceChildren();
+      marcarEtapaPendente('Sintatico');
+      marcarEtapaPendente('Semantico');
+
+      // 1. LEXICAL ANALYSIS (E2)
+      const lexResult = analisarLexico(source);
+      atualizarUIEtapaLexica(lexResult);
+      if (!lexResult.ok) {
+        exibirFalhaGeral("Erro Léxico", lexResult.erro);
+        dotStatus.className = "w-2 h-2 rounded-full bg-rose-500 animate-pulse";
+        return;
+      }
+
+      // 2. SYNTACTIC ANALYSIS & AST BUILDER (E3)
+      const parseResult = analisarSintatico(lexResult.tokens);
+      atualizarUIEtapaSintatica(parseResult);
+      if (!parseResult.ok) {
+        exibirFalhaGeral("Erro Sintático", parseResult.erro.msgFormatada);
+        marcarEtapaPendente('Semantico');
+        dotStatus.className = "w-2 h-2 rounded-full bg-rose-500 animate-pulse";
+        return;
+      }
+      lastCompiledAST = parseResult.ast;
+      renderizarAST(parseResult.ast);
+
+      // 3. SEMANTIC ANALYSIS (E4)
+      const semResult = analisarSemantico(parseResult.ast);
+      atualizarUIEtapaSemantica(semResult);
+      if (!semResult.ok) {
+        exibirFalhaGeral("Erro Semântico", semResult.erros[0]);
+        dotStatus.className = "w-2 h-2 rounded-full bg-rose-500 animate-pulse";
+        return;
+      }
+
+      // SUCCESS!
+      dotStatus.className = "w-2 h-2 rounded-full bg-emerald-400";
+      renderizarCartaRPG(semResult.dados, semResult.alertas);
+      showToast("Compilação concluída com sucesso (E2, E3, E4 OK)", 'sparkles');
+    }
+
+    function marcarEtapaPendente(nome) {
+      const badge = document.getElementById(`badge${nome}`);
+      const desc = document.getElementById(`pipeDesc${nome}`);
+      badge.innerText = 'AGUARDANDO';
+      badge.className = 'text-[10px] font-mono px-2 py-0.5 rounded bg-slate-900 text-slate-500 border border-slate-700';
+      desc.innerText = 'Aguardando a etapa anterior.';
+    }
+
+    // 1. LEXER
+    function analisarLexico(source) {
+      const tokens = [];
+      const lines = source.split('\n');
+      const keywords = ['NIVEL_REQUERIDO', 'ELEMENTO', 'ALCANCE', 'AREA', 'MANA', 'TURNO', 'DANO', 'EFEITO', 'POR'];
+      const elements = ['FOGO', 'GELO', 'RAIO', 'TERRA', 'AGUA', 'AR', 'LUZ', 'TREVAS'];
+
+      for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
+        const lineText = lines[lineIdx];
+        let col = 0;
+
+        while (col < lineText.length) {
+          const char = lineText[col];
+
+          // Whitespace
+          if (char === ' ' || char === '\t' || char === '\r') {
+            col++;
+            continue;
+          }
+
+          // Comment (# ...)
+          if (char === '#') {
+            break; // rest of line is comment
+          }
+
+          // Single char symbols
+          if ([':', '+', '-', '*', '/', '(', ')'].includes(char)) {
+            tokens.push({ type: char, val: char, line: lineIdx + 1, col: col });
+            col++;
+            continue;
+          }
+
+          // String literal
+          if (char === '"') {
+            let str = '';
+            const startCol = col;
+            col++; // skip opening "
+            let closed = false;
+            while (col < lineText.length) {
+              if (lineText[col] === '"') {
+                closed = true;
+                col++; // skip closing "
+                break;
+              }
+              if (lineText[col] === "'") {
+                return { ok: false, erro: `linha ${lineIdx + 1}, coluna ${col}: apóstrofos não são permitidos no texto pela gramática` };
+              }
+              str += lineText[col];
+              col++;
+            }
+            if (!closed) {
+              return { ok: false, erro: `linha ${lineIdx + 1}, coluna ${startCol}: texto não delimitado por aspas duplas` };
+            }
+            tokens.push({ type: 'TEXTO', val: `"${str}"`, line: lineIdx + 1, col: startCol });
+            continue;
+          }
+
+          // Number (Integer or Float)
+          if (/[0-9]/.test(char)) {
+            const startCol = col;
+            const numberMatch = /^[0-9]+(?:\.[0-9]+)?/.exec(lineText.slice(col));
+            const numStr = numberMatch[0];
+            col += numStr.length;
+            tokens.push({ type: 'NUMERO', val: numStr, line: lineIdx + 1, col: startCol });
+            continue;
+          }
+
+          // Identifier or Keyword
+          if (/[a-zA-Z_]/.test(char)) {
+            let idStr = '';
+            const startCol = col;
+            while (col < lineText.length && /[a-zA-Z0-9_]/.test(lineText[col])) {
+              idStr += lineText[col];
+              col++;
+            }
+            const upper = idStr;
+            if (keywords.includes(upper)) {
+              tokens.push({ type: upper, val: upper, line: lineIdx + 1, col: startCol });
+            } else if (elements.includes(upper)) {
+              tokens.push({ type: 'ELEMENTO_VAL', val: upper, line: lineIdx + 1, col: startCol });
+            } else {
+              tokens.push({ type: 'IDENT', val: idStr, line: lineIdx + 1, col: startCol });
+            }
+            continue;
+          }
+
+          // Unknown/Illegal Character
+          return {
+            ok: false,
+            erro: `linha ${lineIdx + 1}, coluna ${col}: caractere inesperado '${char}'`
+          };
+        }
+      }
+
+      tokens.push({ type: 'EOF', val: '<EOF>', line: lines.length, col: lines[lines.length - 1].length });
+      return { ok: true, tokens };
+    }
+
+    // 2. PARSER WITH 3-PART ERROR REPORTING & AST BUILDER
+    function analisarSintatico(tokens) {
+      let idx = 0;
+      function current() { return tokens[idx] || { type: 'EOF', val: '<EOF>', line: 0, col: 0 }; }
+      function next() { return tokens[idx++]; }
+
+      function match(expectedType) {
+        const cur = current();
+        if (cur.type === expectedType) {
+          return next();
+        }
+        // 3-part syntax error reporting
+        const esperavaStr = expectedType === ':' ? "':'" : expectedType;
+        const msg = `linha ${cur.line}, coluna ${cur.col}: esperava ${esperavaStr}, encontrou '${cur.val}'`;
+        throw {
+          line: cur.line,
+          col: cur.col,
+          esperava: esperavaStr,
+          encontrou: cur.val,
+          msgFormatada: msg
+        };
+      }
+
+      const astDeclaracoes = [];
+
+      try {
+        if (current().type === 'EOF') {
+          throw {
+            line: current().line,
+            col: current().col,
+            esperava: 'ao menos uma declaração',
+            encontrou: current().val,
+            msgFormatada: `linha ${current().line}, coluna ${current().col}: esperava ao menos uma declaração`
+          };
+        }
+
+        while (current().type !== 'EOF') {
+          const cur = current();
+
+          if (cur.type === 'NIVEL_REQUERIDO') {
+            next();
+            match(':');
+            const value = parseExpressao();
+            astDeclaracoes.push(['NIVEL', value]);
+          }
+          else if (cur.type === 'ELEMENTO') {
+            next();
+            match(':');
+            const elemTok = match('ELEMENTO_VAL');
+            astDeclaracoes.push(['ELEMENTO', elemTok.val]);
+          }
+          else if (cur.type === 'ALCANCE') {
+            next();
+            match(':');
+            astDeclaracoes.push(['ALCANCE', parseExpressao()]);
+          }
+          else if (cur.type === 'AREA') {
+            next();
+            match(':');
+            astDeclaracoes.push(['AREA', parseExpressao()]);
+          }
+          else if (cur.type === 'MANA') {
+            next();
+            match(':');
+            astDeclaracoes.push(['MANA', parseExpressao()]);
+          }
+          else if (cur.type === 'DANO') {
+            next();
+            match(':');
+            const exprDano = parseExpressao();
+            astDeclaracoes.push(['DANO', exprDano]);
+          }
+          else if (cur.type === 'EFEITO') {
+            next();
+            match(':');
+            const textoTok = match('TEXTO');
+            let duracao = null;
+            if (current().type === 'POR') {
+              next();
+              duracao = parseExpressao();
+              match('TURNO');
+            }
+            astDeclaracoes.push(['EFEITO', textoTok.val, duracao]);
+          }
+          else {
+            const esperados = "{'NIVEL_REQUERIDO', 'ELEMENTO', 'ALCANCE', 'AREA', 'MANA', 'DANO', 'EFEITO'}";
+            throw {
+              line: cur.line,
+              col: cur.col,
+              esperava: esperados,
+              encontrou: cur.val,
+              msgFormatada: `linha ${cur.line}, coluna ${cur.col}: esperava ${esperados}, encontrou '${cur.val}'`
+            };
+          }
+        }
+
+        // Helper expression parser with mathematical precedence
+        function parseExpressao() {
+          return parseAditiva();
+        }
+
+        function parseAditiva() {
+          let left = parseMultiplicativa();
+          while (current().type === '+' || current().type === '-') {
+            const op = next().val;
+            const right = parseMultiplicativa();
+            left = [op, left, right];
+          }
+          return left;
+        }
+
+        function parseMultiplicativa() {
+          let left = parsePrimaria();
+          while (current().type === '*' || current().type === '/') {
+            const op = next().val;
+            const right = parsePrimaria();
+            left = [op, left, right];
+          }
+          return left;
+        }
+
+        function parsePrimaria() {
+          const cur = current();
+          if (cur.type === '(') {
+            next();
+            const expr = parseExpressao();
+            match(')');
+            return expr;
+          }
+          if (cur.type === 'NUMERO') {
+            return next().val;
+          }
+          if (cur.type === 'IDENT' || cur.type === 'TURNO') {
+            return next().val;
+          }
+          throw {
+            line: cur.line,
+            col: cur.col,
+            esperava: "Expressão (Número, Identificador ou '(')",
+            encontrou: cur.val,
+            msgFormatada: `linha ${cur.line}, coluna ${cur.col}: esperava expressão válida, encontrou '${cur.val}'`
+          };
+        }
+
+        return { ok: true, ast: ['programa', astDeclaracoes] };
+
+      } catch (err) {
+        return { ok: false, erro: err };
+      }
+    }
+
+    // 3. SEMANTIC ANALYZER (E4)
+    function analisarSemantico(ast) {
+      const erros = [];
+      const alertas = [];
+      const declaracoes = ast[1];
+      const vistos = new Set();
+      const dados = {
+        nivel: null,
+        elemento: null,
+        alcance: 10,
+        area: 0,
+        manaBase: null,
+        manaTurno: 0,
+        dano: null,
+        efeito: null,
+        duracaoEfeito: null,
+        formulas: {}
+      };
+
+      // First pass: extract level and element so they are available in expression scopes
+      for (const dec of declaracoes) {
+        if (dec[0] === 'NIVEL') {
+          const value = avaliarExpressaoSemantica(dec[1], null);
+          if (!value.erro) dados.nivel = value.val;
+        } else if (dec[0] === 'ELEMENTO') {
+          dados.elemento = dec[1];
+        }
+      }
+
+      for (const dec of declaracoes) {
+        const tag = dec[0];
+
+        // 1. Check duplicate declarations
+        const baseTag = tag.startsWith('MANA') ? 'MANA' : tag;
+        if (vistos.has(baseTag)) {
+          erros.push(`Atributo '${baseTag}' declarado mais de uma vez`);
+        }
+        vistos.add(baseTag);
+
+        // Populate and evaluate
+        if (tag === 'NIVEL') {
+          dados.formulas.NIVEL = formatarExpressao(dec[1]);
+          const result = avaliarExpressaoSemantica(dec[1], dados.nivel);
+          if (result.erro) erros.push(`Em NIVEL_REQUERIDO: ${result.erro}`);
+          dados.nivel = result.val;
+        } else if (tag === 'ELEMENTO') {
+          dados.elemento = dec[1];
+        } else if (tag === 'ALCANCE') {
+          dados.formulas.ALCANCE = formatarExpressao(dec[1]);
+          const result = avaliarExpressaoSemantica(dec[1], dados.nivel);
+          if (result.erro) erros.push(`Em ALCANCE: ${result.erro}`);
+          dados.alcance = result.val;
+        } else if (tag === 'AREA') {
+          dados.formulas.AREA = formatarExpressao(dec[1]);
+          const result = avaliarExpressaoSemantica(dec[1], dados.nivel);
+          if (result.erro) erros.push(`Em AREA: ${result.erro}`);
+          dados.area = result.val;
+        } else if (tag === 'MANA') {
+          dados.formulas.MANA = formatarExpressao(dec[1]);
+          const rate = extrairCustoPorTurno(dec[1]);
+          if (rate) {
+            dados.formulas.MANA = formatarExpressao(rate.base);
+            dados.formulas.MANA_TURNO = formatarExpressao(rate.porTurno);
+            const base = avaliarExpressaoSemantica(rate.base, dados.nivel);
+            const perTurn = avaliarExpressaoSemantica(rate.porTurno, dados.nivel);
+            if (base.erro) erros.push(`Em MANA: ${base.erro}`);
+            if (perTurn.erro) erros.push(`Em MANA/TURNO: ${perTurn.erro}`);
+            dados.manaBase = base.val;
+            dados.manaTurno = perTurn.val;
+          } else {
+            const evalRes = avaliarExpressaoSemantica(dec[1], dados.nivel);
+            if (evalRes.erro) erros.push(`Em MANA: ${evalRes.erro}`);
+            dados.manaBase = evalRes.val;
+          }
+        } else if (tag === 'MANA_POR_TURNO') {
+          const evalBase = avaliarExpressaoSemantica(dec[1], dados.nivel);
+          if (evalBase.erro) erros.push(`Em MANA: ${evalBase.erro}`);
+          dados.manaBase = evalBase.val;
+
+          const evalTurno = avaliarExpressaoSemantica(dec[2], dados.nivel);
+          if (evalTurno.erro) erros.push(`Em MANA/TURNO: ${evalTurno.erro}`);
+          dados.manaTurno = evalTurno.val;
+        } else if (tag === 'DANO') {
+          dados.formulas.DANO = formatarExpressao(dec[1]);
+          const evalDano = avaliarExpressaoSemantica(dec[1], dados.nivel);
+          if (evalDano.erro) erros.push(`Em DANO: ${evalDano.erro}`);
+          dados.dano = evalDano.val;
+        } else if (tag === 'EFEITO') {
+          dados.efeito = dec[1].replace(/"/g, '');
+          const duration = dec[2] ? avaliarExpressaoSemantica(dec[2], dados.nivel) : { val: null };
+          if (dec[2]) dados.formulas.DURACAO_EFEITO = formatarExpressao(dec[2]);
+          if (duration.erro) erros.push(`Em EFEITO: ${duration.erro}`);
+          dados.duracaoEfeito = duration.val;
+        }
+      }
+
+      // Check Mandatory Attributes
+      if (!vistos.has('NIVEL')) {
+        erros.push("Atributo obrigatório 'NIVEL_REQUERIDO' não foi definido");
+      }
+      if (!vistos.has('ELEMENTO')) {
+        erros.push("Atributo obrigatório 'ELEMENTO' não foi definido");
+      }
+      if (!vistos.has('MANA')) {
+        erros.push("Atributo obrigatório 'MANA' não foi definido");
+      }
+
+      // Negative values validation
+      const nonNegative = [
+        ['NIVEL', dados.nivel],
+        ['MANA', dados.manaBase],
+        ['ALCANCE', dados.alcance],
+        ['AREA', dados.area],
+        ['DANO', dados.dano]
+      ];
+      for (const [name, value] of nonNegative) {
+        if (value !== null && value !== undefined && value < 0) {
+          erros.push(`${name} não pode ter valor negativo (${value})`);
+        }
+      }
+      if (dados.manaTurno !== null && dados.manaTurno < 0) {
+        erros.push(`MANA por TURNO não pode ter valor negativo (${dados.manaTurno})`);
+      }
+
+      // Balance Auditing (Warnings, not breaking errors)
+      if (dados.nivel === 1 && dados.manaBase === 0 && dados.dano !== null && dados.dano > 15) {
+        alertas.push(`Feitiço de nível 1 sem custo de mana possui dano elevado (${dados.dano} > 15).`);
+      }
+      if (dados.area > 0 && dados.alcance === 0 && !['LUZ', 'TERRA', 'ESCUDO'].includes(dados.elemento)) {
+        alertas.push(`AREA > 0 (${dados.area}) com ALCANCE: 0 atingirá o próprio conjurador.`);
+      }
+      if (dados.elemento && dados.efeito && CONTRADICOES_ELEMENTAIS[dados.elemento]) {
+        const efeito = dados.efeito.toLowerCase();
+        if (CONTRADICOES_ELEMENTAIS[dados.elemento].some(palavra => efeito.includes(palavra))) {
+          alertas.push(`Contradição entre o ELEMENTO '${dados.elemento}' e o efeito '${dados.efeito}'.`);
+        }
+      }
+
+      return {
+        ok: erros.length === 0,
+        erros,
+        alertas,
+        dados
+      };
+    }
+
+    // Semantic Expression Evaluator & Scope Checker
+    function avaliarExpressaoSemantica(expr, nivelContexto) {
+      if (typeof expr === 'string') {
+        if (/^[0-9]+(?:\.[0-9]+)?$/.test(expr)) {
+          return { val: parseFloat(expr) };
+        }
+        const allowed = ['NIVEL_CONJURADOR', 'INTELIGENCIA', 'FORCA', 'AGILIDADE', 'SABEDORIA', 'TURNO'];
+        if (allowed.includes(expr)) return { val: null };
+        return { erro: `Variável '${expr}' não é reconhecida pelo sistema.` };
+      }
+
+      if (Array.isArray(expr)) {
+        const op = expr[0];
+        const leftRes = avaliarExpressaoSemantica(expr[1], nivelContexto);
+        if (leftRes.erro) return leftRes;
+        const rightRes = avaliarExpressaoSemantica(expr[2], nivelContexto);
+        if (rightRes.erro) return rightRes;
+
+        const left = leftRes.val;
+        const right = rightRes.val;
+        if (op === '/' && right === 0) {
+          return { erro: "Divisão por zero detectada em tempo de análise semântica" };
+        }
+        if (left === null || right === null) return { val: null };
+
+        if (op === '+') return { val: left + right };
+        if (op === '-') return { val: left - right };
+        if (op === '*') return { val: left * right };
+        if (op === '/') return { val: left / right };
+      }
+      return { val: 0 };
+    }
+
+    function extrairCustoPorTurno(expr) {
+      if (Array.isArray(expr) && expr[0] === '+' && Array.isArray(expr[2]) &&
+          expr[2][0] === '/' && expr[2][2] === 'TURNO') {
+        return { base: expr[1], porTurno: expr[2][1] };
+      }
+      if (Array.isArray(expr) && expr[0] === '/' && expr[2] === 'TURNO') {
+        return { base: '0', porTurno: expr[1] };
+      }
+      return null;
+    }
+
+    function formatarExpressao(expr) {
+      if (Array.isArray(expr)) return `(${formatarExpressao(expr[1])} ${expr[0]} ${formatarExpressao(expr[2])})`;
+      return String(expr);
+    }
+
+    // =========================================================================
+    // UI UPDATES & VISUALIZERS
+    // =========================================================================
+
+    function atualizarUIEtapaLexica(result) {
+      const badge = document.getElementById('badgeLexico');
+      const desc = document.getElementById('pipeDescLexico');
+      const list = document.getElementById('tokensList');
+      list.innerHTML = '';
+
+      if (result.ok) {
+        badge.innerText = 'OK';
+        badge.className = 'text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800';
+        desc.innerText = `${result.tokens.length - 1} tokens identificados corretamente.`;
+
+        result.tokens.slice(0, 30).forEach(tok => {
+          if (tok.type === 'EOF') return;
+          const span = document.createElement('span');
+          span.className = 'text-[9px] font-mono px-1.5 py-0.5 rounded bg-arcane-900 border border-arcane-800 text-slate-300';
+          span.innerText = `${tok.type}: ${tok.val}`;
+          list.appendChild(span);
+        });
+        if (result.tokens.length > 31) {
+          const more = document.createElement('span');
+          more.className = 'text-[9px] font-mono text-slate-500 self-center';
+          more.innerText = `+${result.tokens.length - 31} mais...`;
+          list.appendChild(more);
+        }
+      } else {
+        badge.innerText = 'ERRO';
+        badge.className = 'text-[10px] font-mono px-2 py-0.5 rounded bg-rose-950 text-rose-400 border border-rose-800';
+        desc.innerText = result.erro;
+      }
+    }
+
+    function atualizarUIEtapaSintatica(result) {
+      const badge = document.getElementById('badgeSintatico');
+      const desc = document.getElementById('pipeDescSintatico');
+      const errorBox = document.getElementById('sintaticoErrorBox');
+      const errorDetail = document.getElementById('sintaticoErrorDetail');
+
+      if (result.ok) {
+        badge.innerText = 'OK';
+        badge.className = 'text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800';
+        desc.innerText = 'Gramática verificada com precedência de operadores respeitada.';
+        errorBox.classList.add('hidden');
+      } else {
+        badge.innerText = 'ERRO';
+        badge.className = 'text-[10px] font-mono px-2 py-0.5 rounded bg-rose-950 text-rose-400 border border-rose-800';
+        desc.innerText = 'Falha no reconhecimento da gramática.';
+        errorBox.classList.remove('hidden');
+
+        errorDetail.replaceChildren();
+        [
+          ['Onde:', `Linha ${result.erro.line}, Coluna ${result.erro.col}`],
+          ['Esperava:', result.erro.esperava],
+          ['Encontrou:', result.erro.encontrou]
+        ].forEach(([labelText, value]) => {
+          const row = document.createElement('div');
+          const label = document.createElement('strong');
+          label.className = 'text-slate-400';
+          label.textContent = `${labelText} `;
+          const detail = document.createElement('span');
+          detail.textContent = value;
+          row.append(label, detail);
+          errorDetail.appendChild(row);
+        });
+      }
+    }
+
+    function atualizarUIEtapaSemantica(result) {
+      const badge = document.getElementById('badgeSemantico');
+      const dot = document.getElementById('dotSemantico');
+      const desc = document.getElementById('pipeDescSemantico');
+      const errorBox = document.getElementById('semanticoErrorBox');
+      const warnBox = document.getElementById('semanticoWarningBox');
+
+      if (result.ok) {
+        dot.className = 'w-2 h-2 rounded-full bg-emerald-400';
+        badge.innerText = 'OK';
+        badge.className = 'text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800';
+        desc.innerText = 'Atributos obrigatórios e expressões matemáticas válidas.';
+        errorBox.classList.add('hidden');
+      } else {
+        dot.className = 'w-2 h-2 rounded-full bg-rose-500';
+        badge.innerText = 'ERRO';
+        badge.className = 'text-[10px] font-mono px-2 py-0.5 rounded bg-rose-950 text-rose-400 border border-rose-800';
+        desc.innerText = 'Inconsistências de regras de jogo ou divisão ilegal.';
+        errorBox.classList.remove('hidden');
+        errorBox.replaceChildren();
+        result.erros.forEach(message => {
+          const row = document.createElement('div');
+          row.textContent = `• ${message}`;
+          errorBox.appendChild(row);
+        });
+      }
+
+      if (result.alertas && result.alertas.length > 0) {
+        warnBox.classList.remove('hidden');
+        warnBox.replaceChildren();
+        result.alertas.forEach(message => {
+          const row = document.createElement('div');
+          row.textContent = `⚠️ ${message}`;
+          warnBox.appendChild(row);
+        });
+      } else {
+        warnBox.classList.add('hidden');
+      }
+    }
+
+    function renderizarAST(ast) {
+      const container = document.getElementById('astTreeVisualizer');
+      const tupleOutput = document.getElementById('astTupleOutput');
+      container.innerHTML = '';
+
+      // Format Python tuple representation
+      tupleOutput.innerText = JSON.stringify(ast)
+        .replace(/\[/g, '(')
+        .replace(/\]/g, ')')
+        .replace(/"/g, "'");
+
+      // Visual Tree nodes
+      const rootDiv = document.createElement('div');
+      rootDiv.className = 'flex items-center gap-2 text-purple-400 font-bold';
+      rootDiv.innerHTML = `<i data-lucide="folder-tree" class="w-4 h-4 text-purple-400"></i> <span>programa</span>`;
+      container.appendChild(rootDiv);
+
+      const declsContainer = document.createElement('div');
+      declsContainer.className = 'ml-6 pl-3 border-l border-arcane-800 space-y-2 mt-2';
+
+      ast[1].forEach(node => {
+        const item = document.createElement('div');
+        item.className = 'bg-arcane-900/80 p-2 rounded-lg border border-arcane-800 flex items-start gap-2';
+
+        let nodeDetails = '';
+        if (node[0] === 'MANA_POR_TURNO') {
+          nodeDetails = `Base: ${formatASTSubtree(node[1])} | Turno: ${formatASTSubtree(node[2])}`;
+        } else if (node[0] === 'DANO' || node[0] === 'MANA' || node[0] === 'NIVEL' || node[0] === 'ALCANCE' || node[0] === 'AREA') {
+          nodeDetails = formatASTSubtree(node[1]);
+        } else if (node[0] === 'EFEITO') {
+          nodeDetails = node[2] === null
+            ? node[1]
+            : `${node[1]} por ${formatASTSubtree(node[2])} turnos`;
+        } else {
+          nodeDetails = formatASTSubtree(node[1]);
+        }
+
+        const label = document.createElement('span');
+        label.className = 'text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 px-1.5 py-0.5 rounded bg-arcane-850 border border-arcane-700';
+        label.textContent = node[0];
+        const detail = document.createElement('div');
+        detail.className = 'text-xs text-slate-300 font-mono mt-0.5 break-all';
+        detail.textContent = nodeDetails;
+        item.append(label, detail);
+        declsContainer.appendChild(item);
+      });
+
+      container.appendChild(declsContainer);
+      lucide.createIcons();
+    }
+
+    function formatASTSubtree(val) {
+      if (Array.isArray(val)) {
+        return `(${val[0]} ${formatASTSubtree(val[1])} ${formatASTSubtree(val[2])})`;
+      }
+      return String(val);
+    }
+
+    function renderizarCartaRPG(dados, alertas) {
+      const cardWrap = document.getElementById('rpgCardWrapper');
+      const errorState = document.getElementById('rpgCardErrorState');
+      cardWrap.classList.remove('hidden');
+      errorState.classList.add('hidden');
+
+      const elem = dados.elemento || 'FOGO';
+      const config = ELEMENT_CONFIG[elem] || ELEMENT_CONFIG.FOGO;
+
+      // Update Card Header
+      const levelLabel = dados.nivel === null ? (dados.formulas.NIVEL || '?') : dados.nivel;
+      document.getElementById('cardLevelBadge').innerText = `Nv. ${levelLabel}`;
+      document.getElementById('cardSpellTitle').innerText = formatSpellTitle(dados);
+
+      // Element & Glow
+      const glow = document.getElementById('cardArtworkGlow');
+      glow.style.backgroundColor = config.color;
+      const artwork = document.getElementById('cardElementArtwork');
+      artwork.alt = `Arte elemental de ${elem}`;
+      artwork.src = criarArteElemento(elem, config.color);
+
+      const centralIcon = document.getElementById('cardCentralIcon');
+      centralIcon.style.borderColor = config.color;
+      centralIcon.innerHTML = `<i data-lucide="${config.icon}" class="w-9 h-9" style="color: ${config.color}"></i>`;
+
+      // Element Badge
+      const elemBadge = document.getElementById('cardElementBadge');
+      elemBadge.className = `inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-mono font-bold tracking-wider ${config.classBg} ${config.classText} ${config.classBorder} backdrop-blur-sm`;
+      elemBadge.innerHTML = `<i data-lucide="${config.icon}" class="w-3 h-3"></i> ${elem}`;
+
+      // Range & Area
+      const alcance = dados.alcance === null ? (dados.formulas.ALCANCE || '?') : dados.alcance;
+      const area = dados.area === null ? (dados.formulas.AREA || '?') : dados.area;
+      document.getElementById('cardRangeBadge').innerText = `🏹 ${alcance}m`;
+      document.getElementById('cardAreaBadge').innerText = dados.area === 0 ? '🎯 Alvo Único' : `💥 ${area}m área`;
+
+      // Mana
+      document.getElementById('cardManaBase').innerText = dados.manaBase !== null ? Math.round(dados.manaBase) : (dados.formulas.MANA || '?');
+      const perTurnLabel = document.getElementById('cardManaPerTurn');
+      if (dados.manaTurno !== 0 && dados.manaTurno !== null) {
+        perTurnLabel.innerText = `+${dados.manaTurno !== null ? Math.round(dados.manaTurno) : dados.formulas.MANA_TURNO}/turno`;
+        perTurnLabel.classList.remove('hidden');
+      } else {
+        perTurnLabel.classList.add('hidden');
+      }
+
+      // Damage
+      document.getElementById('cardDamageValue').innerText = dados.dano !== null ? Math.round(dados.dano) : (dados.formulas.DANO || '0');
+
+      // Effect
+      const effectBox = document.getElementById('cardEffectBox');
+      if (dados.efeito) {
+        effectBox.classList.remove('hidden');
+        const duration = dados.duracaoEfeito === null
+          ? (dados.formulas.DURACAO_EFEITO ? `durante ${dados.formulas.DURACAO_EFEITO}` : '')
+          : `durante ${dados.duracaoEfeito}`;
+        document.getElementById('cardEffectText').innerText = duration
+          ? `Aplica "${dados.efeito}" ${duration} turnos.`
+          : `Aplica "${dados.efeito}".`;
+      } else {
+        effectBox.classList.add('hidden');
+      }
+
+      // Balance warning
+      const warnBox = document.getElementById('cardBalanceWarning');
+      if (alertas && alertas.length > 0) {
+        warnBox.classList.remove('hidden');
+        document.getElementById('cardBalanceMsg').innerText = alertas[0];
+      } else {
+        warnBox.classList.add('hidden');
+      }
+
+      lucide.createIcons();
+    }
+
+    function exibirFalhaGeral(titulo, mensagem) {
+      const cardWrap = document.getElementById('rpgCardWrapper');
+      const errorState = document.getElementById('rpgCardErrorState');
+      cardWrap.classList.add('hidden');
+      errorState.classList.remove('hidden');
+      document.getElementById('rpgCardErrorMsg').innerText = mensagem;
+      showToast(`${titulo}: ${mensagem.split('\n')[0]}`, 'alert-circle', true);
+    }
+
+    function formatSpellTitle(dados) {
+      if (dados.efeito) return `${dados.efeito} de ${dados.elemento}`;
+      if (dados.dano > 40) return `Tempestade de ${dados.elemento}`;
+      if (dados.dano > 0) return `Orbe de ${dados.elemento}`;
+      return `Encantamento de ${dados.elemento}`;
+    }
+
+    function lerFeiticosSalvos() {
+      try {
+        const stored = localStorage.getItem(SAVED_SPELLS_KEY);
+        if (stored === null) return [];
+        const parsed = JSON.parse(stored);
+        if (!Array.isArray(parsed) || parsed.some(item =>
+          !item || typeof item.id !== 'string' || typeof item.title !== 'string' ||
+          typeof item.code !== 'string' || typeof item.savedAt !== 'string'
+        )) {
+          throw new Error('O conteúdo salvo não está no formato esperado.');
+        }
+        return parsed;
+      } catch (error) {
+        console.error('Não foi possível carregar os feitiços salvos.', error);
+        showToast(`Falha ao carregar os feitiços salvos: ${error.message}`, 'alert-circle', true);
+        return null;
+      }
+    }
+
+    function gravarFeiticosSalvos(spells) {
+      try {
+        localStorage.setItem(SAVED_SPELLS_KEY, JSON.stringify(spells));
+        return true;
+      } catch (error) {
+        console.error('Não foi possível salvar os feitiços.', error);
+        showToast(`Falha ao salvar: ${error.message}`, 'alert-circle', true);
+        return false;
+      }
+    }
+
+    function renderizarFeiticosSalvos() {
+      const container = document.getElementById('savedSpellsList');
+      const spells = lerFeiticosSalvos();
+      container.replaceChildren();
+      if (spells === null || spells.length === 0) {
+        const empty = document.createElement('p');
+        empty.className = 'col-span-full text-center text-sm text-slate-500 py-12';
+        empty.textContent = spells === null
+          ? 'Não foi possível ler os feitiços salvos. Verifique o aviso e tente novamente.'
+          : 'Nenhum feitiço salvo ainda.';
+        container.appendChild(empty);
+        return;
+      }
+
+      spells.forEach(spell => {
+        const card = document.createElement('article');
+        card.className = 'bg-arcane-950 border border-arcane-800 rounded-xl p-4 flex flex-col gap-3';
+        const heading = document.createElement('div');
+        heading.className = 'flex items-start justify-between gap-2';
+        const title = document.createElement('h3');
+        title.className = 'font-rpg text-sm font-bold text-purple-200 break-words';
+        title.textContent = spell.title;
+        const date = document.createElement('time');
+        date.className = 'text-[10px] text-slate-500 shrink-0';
+        date.dateTime = spell.savedAt;
+        date.textContent = new Date(spell.savedAt).toLocaleDateString();
+        heading.append(title, date);
+
+        const preview = document.createElement('pre');
+        preview.className = 'text-[10px] text-slate-400 font-mono whitespace-pre-wrap break-words max-h-24 overflow-hidden';
+        preview.textContent = spell.code;
+        const actions = document.createElement('div');
+        actions.className = 'flex gap-2 mt-auto';
+        const loadButton = document.createElement('button');
+        loadButton.type = 'button';
+        loadButton.className = 'flex-1 bg-cyan-950/60 hover:bg-cyan-900/70 border border-cyan-900 text-cyan-300 text-xs rounded-lg px-3 py-2';
+        loadButton.textContent = 'Carregar no editor';
+        loadButton.addEventListener('click', () => carregarFeiticoSalvo(spell));
+        const deleteButton = document.createElement('button');
+        deleteButton.type = 'button';
+        deleteButton.className = 'bg-rose-950/40 hover:bg-rose-900/60 border border-rose-900/70 text-rose-300 text-xs rounded-lg px-3 py-2';
+        deleteButton.textContent = 'Excluir';
+        deleteButton.addEventListener('click', () => excluirFeiticoSalvo(spell.id));
+        actions.append(loadButton, deleteButton);
+        card.append(heading, preview, actions);
+        container.appendChild(card);
+      });
+    }
+
+    function iniciarSalvarFeitico() {
+      const code = editor.value.trim();
+      if (!code) {
+        showToast('O editor está vazio; não há feitiço para salvar.', 'alert-circle', true);
+        return;
+      }
+
+      const effect = /^\s*EFEITO:\s*"([^"]+)"/mi.exec(code);
+      const element = /^\s*ELEMENTO:\s*([A-Z]+)/mi.exec(code);
+      const suggestedName = effect
+        ? `${effect[1]}${element ? ` de ${element[1]}` : ''}`
+        : `Feitiço${element ? ` de ${element[1]}` : ''}`;
+      document.getElementById('savedSpellName').value = suggestedName;
+      const form = document.getElementById('savedSpellForm');
+      form.classList.remove('hidden');
+      document.getElementById('savedSpellName').focus();
+    }
+
+    function cancelarSalvarFeitico() {
+      document.getElementById('savedSpellForm').classList.add('hidden');
+    }
+
+    function confirmarSalvarFeitico(event) {
+      event.preventDefault();
+      const code = editor.value.trim();
+      const title = document.getElementById('savedSpellName').value.trim();
+      if (!code || !title) {
+        showToast('Informe um nome para salvar o feitiço.', 'alert-circle', true);
+        return;
+      }
+
+      const spells = lerFeiticosSalvos();
+      if (spells === null) return;
+      const saved = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        title,
+        code,
+        savedAt: new Date().toISOString()
+      };
+      if (gravarFeiticosSalvos([saved, ...spells])) {
+        cancelarSalvarFeitico();
+        renderizarFeiticosSalvos();
+        showToast('Feitiço salvo na biblioteca.', 'bookmark-check');
+      }
+    }
+
+    function carregarFeiticoSalvo(spell) {
+      editor.value = spell.code;
+      atualizarNumerosDeLinha();
+      compilarScript();
+      mudarTab('card');
+      showToast(`"${spell.title}" carregado no editor.`, 'book-open');
+    }
+
+    function excluirFeiticoSalvo(id) {
+      const spells = lerFeiticosSalvos();
+      if (spells === null) return;
+      const spell = spells.find(item => item.id === id);
+      if (!spell) return;
+      if (gravarFeiticosSalvos(spells.filter(item => item.id !== id))) {
+        renderizarFeiticosSalvos();
+        showToast('Feitiço removido da biblioteca.', 'trash-2');
+      }
+    }
+
+    function criarArteElemento(elemento, cor) {
+      const formas = {
+        FOGO: '<path d="M160 35c10 35-20 42-2 68 10-18 25-23 23-45 30 25 43 48 43 74a64 64 0 1 1-128 0c0-25 16-49 43-71-3 25 1 34 8 42 13-21 22-38 13-68z"/>',
+        GELO: '<path d="M160 35v180M82 80l156 90M82 170l156-90M160 35l-18 24m18-24 18 24M160 215l-18-24m18 24 18-24M82 80l29 3m-29-3 11 27m132 63-29-3m29 3-11-27M82 170l11-27m-11 27 29-3m127-87-11 27m11-27-29 3"/>',
+        RAIO: '<path d="M178 30 88 137h57l-14 78 101-121h-62l8-64z"/>',
+        TERRA: '<path d="m55 190 63-92 32 43 28-35 87 84H55z"/><path d="m118 98 18 26 14-13m33-5 20 24 17-11"/>',
+        AGUA: '<path d="M48 112c28-25 56-25 84 0s56 25 84 0 56-25 84 0M48 157c28-25 56-25 84 0s56 25 84 0 56-25 84 0M48 202c28-25 56-25 84 0s56 25 84 0 56-25 84 0"/>',
+        AR: '<path d="M49 105c36-47 117-53 169-24 42 24 42 75 5 96-27 15-61 8-69-13-7-19 12-36 32-29M51 161c40-35 82-41 115-27m-95 70c45-19 91-20 128-6"/>',
+        LUZ: '<circle cx="160" cy="135" r="44"/><path d="M160 32v30m0 146v30M57 135h30m146 0h30M87 62l21 21m104 104 21 21m0-146-21 21M108 187l-21 21"/>',
+        TREVAS: '<path d="M194 48a91 91 0 1 0 49 150A99 99 0 0 1 194 48z"/><circle cx="213" cy="91" r="5"/><circle cx="239" cy="129" r="4"/>'
+      };
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 270"><defs><radialGradient id="bg"><stop stop-color="${cor}" stop-opacity=".55"/><stop offset="1" stop-color="#070913" stop-opacity=".05"/></radialGradient><filter id="blur"><feGaussianBlur stdDeviation="20"/></filter></defs><rect width="320" height="270" fill="#080d1d"/><circle cx="160" cy="135" r="102" fill="${cor}" opacity=".28" filter="url(#blur)"/><rect width="320" height="270" fill="url(#bg)"/><path d="M20 220Q160 165 300 220" fill="none" stroke="${cor}" stroke-opacity=".35" stroke-width="2"/><g fill="${cor}" stroke="#fff" stroke-opacity=".85" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">${formas[elemento] || formas.FOGO}</g><circle cx="56" cy="54" r="2" fill="#fff" opacity=".8"/><circle cx="265" cy="73" r="2" fill="#fff" opacity=".65"/></svg>`;
+      return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+    }
+
+    function copiarCodigo() {
+      const text = editor.value;
+      const el = document.createElement('textarea');
+      el.value = text;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+      showToast("Código copiado para a área de transferência", 'copy');
+    }
+
+    function copiarAST() {
+      const ast = document.getElementById('astTupleOutput').innerText;
+      const el = document.createElement('textarea');
+      el.value = ast;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+      showToast("Árvore AST copiada para a área de transferência", 'copy');
+    }
+
+    function showToast(msg, iconName = 'check', isError = false) {
+      const toast = document.getElementById('toastNotification');
+      const text = document.getElementById('toastMessage');
+      const icon = document.getElementById('toastIcon');
+
+      text.innerText = msg;
+      icon.setAttribute('data-lucide', iconName);
+      if (isError) {
+        icon.className = 'w-4 h-4 text-rose-400';
+        toast.className = 'fixed bottom-5 right-5 z-50 transform translate-y-0 opacity-100 transition-all duration-300 flex items-center gap-3 px-4 py-3 rounded-xl shadow-2xl backdrop-blur-md bg-arcane-900/95 border border-rose-800 text-xs font-mono';
+      } else {
+        icon.className = 'w-4 h-4 text-cyan-400';
+        toast.className = 'fixed bottom-5 right-5 z-50 transform translate-y-0 opacity-100 transition-all duration-300 flex items-center gap-3 px-4 py-3 rounded-xl shadow-2xl backdrop-blur-md bg-arcane-900/95 border border-arcane-700 text-xs font-mono';
+      }
+      lucide.createIcons();
+
+      setTimeout(() => {
+        toast.className = 'fixed bottom-5 right-5 z-50 transform translate-y-24 opacity-0 transition-all duration-300 flex items-center gap-3 px-4 py-3 rounded-xl shadow-2xl backdrop-blur-md bg-arcane-900/95 border border-arcane-700 text-xs font-mono';
+      }, 3500);
+    }
+  </script>
+</body>
+</html>
